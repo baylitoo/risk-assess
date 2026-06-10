@@ -34,55 +34,62 @@ coverage challenge, evaluation metrics, and a local vulnerability intelligence
 CLI.
 
 ```mermaid
-flowchart LR
-    Dossier["Assessment dossier<br/>(future ingestion pipeline)"]
+flowchart TB
+    Dossier["Assessment dossier<br/>future ingestion pipeline"]
 
-    subgraph Workflow["Deterministic assessment workflow"]
-        Intake["Intake<br/>inventory + completeness gate"]
-        Scope["Scoping<br/>modules + depth + agent schedule"]
-        Evidence["Evidence<br/>specialist artifacts"]
-        Synthesis["Synthesis<br/>risk register"]
-        Challenge["Challenge<br/>coverage checks + bounded revisions"]
-        Review["Human review"]
-        Publish["Publish<br/>(future integration)"]
+    subgraph Workflow["Assessment workflow"]
+        direction TB
+        Intake["1. Intake<br/>Inventory + completeness"]
+        Scope["2. Scoping<br/>Modules + depth + schedule"]
+        Gate1{{"Human gate"}}
+        Evidence["3. Evidence<br/>Specialist artifacts"]
+        Synthesis["4. Synthesis<br/>Risk register"]
+        Challenge["5. Challenge<br/>Coverage + bounded revision"]
+        Review["6. Review"]
+        Gate2{{"Human gate"}}
+        Publish["7. Publish<br/>Future integration"]
 
-        Intake --> Scope
-        Scope -->|"human gate"| Evidence
-        Evidence --> Synthesis
-        Synthesis --> Challenge
-        Challenge --> Review
-        Review -->|"human gate"| Publish
+        Intake --> Scope --> Gate1 --> Evidence --> Synthesis --> Challenge --> Review --> Gate2 --> Publish
+    end
+
+    subgraph ArtifactLayer["Artifact and runtime boundary"]
+        direction LR
+        Harness["Policy-enforced<br/>agent harness"]
+        Policy["YAML policy engine<br/>default deny"]
+        Workspace[("Immutable versioned<br/>artifact workspace")]
+        Audit[("Append-only JSONL<br/>audit log")]
+
+        Harness --> Policy
+        Harness --> Workspace
+        Harness --> Audit
+    end
+
+    subgraph Services["Deterministic services"]
+        direction LR
+        IDs["Stable entity IDs"]
+        Scorer["Risk score<br/>+ confidence"]
+        Critic["Missing-risk<br/>coverage critic"]
+        Evals["False-safe<br/>quality metrics"]
+        Riskctl["riskctl<br/>NVD + KEV + EPSS"]
     end
 
     Dossier -.-> Intake
-
-    subgraph Runtime["Implemented runtime controls"]
-        Policy["YAML policy engine<br/>default deny"]
-        Harness["Agent harness"]
-        Workspace["Immutable versioned<br/>artifact workspace"]
-        Audit["Append-only JSONL<br/>audit log"]
-    end
-
-    subgraph Deterministic["Implemented deterministic services"]
-        IDs["Stable entity IDs"]
-        Scorer["Risk score + confidence"]
-        Critic["Missing-risk coverage critic"]
-        Evals["False-safe and quality metrics"]
-        Riskctl["riskctl<br/>NVD + KEV + EPSS mirror"]
-    end
-
-    Intake --> Harness
-    Scope --> Harness
-    Evidence --> Harness
-    Synthesis --> Harness
-    Challenge --> Critic
-    Harness --> Policy
-    Harness --> Workspace
-    Harness --> Audit
-    Synthesis --> Scorer
-    Challenge --> Evals
-    Evidence -.-> Riskctl
+    Evidence -. artifact I/O .-> Harness
     IDs --> Workspace
+    Riskctl -.-> Evidence
+    Scorer --> Synthesis
+    Critic --> Challenge
+    Evals --> Challenge
+
+    classDef future fill:#f6f8fa,stroke:#8c959f,stroke-dasharray:5 5,color:#57606a;
+    classDef gate fill:#fff8c5,stroke:#9a6700,color:#633c01;
+    classDef runtime fill:#ddf4ff,stroke:#0969da,color:#0550ae;
+    classDef service fill:#dafbe1,stroke:#1a7f37,color:#116329;
+
+    class Dossier,Publish future;
+    class Gate1,Gate2 gate;
+    class Harness,Policy,Workspace,Audit runtime;
+    class IDs,Scorer,Critic,Evals,Riskctl service;
 ```
 
 ## Target Architecture

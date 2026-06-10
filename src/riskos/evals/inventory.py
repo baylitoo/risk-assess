@@ -19,10 +19,124 @@ tracked as a downstream eval (threat-model completeness).
 from __future__ import annotations
 
 import re
+from enum import StrEnum
+from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from riskos.schemas.artifacts import AssetInventory
+
+
+class InventoryCorpusError(Exception):
+    pass
+
+
+class InventorySplit(StrEnum):
+    DEV = "dev"
+    REGRESSION = "regression"
+    HOLDOUT = "holdout"
+
+
+class InventoryEvalCase(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1"] = "1"
+    case_id: str
+    split: InventorySplit
+    description: str = ""
+    golden_inventory: AssetInventory
+    produced_inventory: AssetInventory | None = None
+
+
+class InventoryEvalThresholds(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    min_recall: float = Field(default=0.0, ge=0.0, le=1.0)
+    min_precision: float = Field(default=0.0, ge=0.0, le=1.0)
+    min_f1: float = Field(default=0.0, ge=0.0, le=1.0)
+
+
+class InventoryCorpusEvalReport(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1"] = "1"
+    split: InventorySplit
+    case_count: int
+    aggregate_precision: float
+    aggregate_recall: float
+    aggregate_f1: float
+    passed: bool
+    violations: list[str] = Field(default_factory=list)
+    cases: list[InventoryEvalReport] = Field(default_factory=list)
+
+
+def load_inventory_corpus(directory: str | Path) -> list[InventoryEvalCase]:
+    """Load all inventory eval cases from a directory tree."""
+    root = Path(directory)
+    if not root.is_dir():
+        raise InventoryCorpusError(f"corpus directory not found: {root}")
+    cases: list[InventoryEvalCase] = []
+    seen: set[str] = set()
+    for path in sorted(root.rglob("*.json")):
+        try:
+            case = InventoryEvalCase.model_validate_json(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise InventoryCorpusError(f"invalid eval case {path}: {exc}") from exc
+        if case.case_id in seen:
+            raise InventoryCorpusError(f"duplicate case_id {case.case_id!r}")
+        seen.add(case.case_id)
+        cases.append(case)
+    if not cases:
+        raise InventoryCorpusError(f"no eval cases found in {root}")
+    return cases
+
+
+def evaluate_inventory_corpus(
+    cases: list[InventoryEvalCase],
+    split: InventorySplit = InventorySplit.REGRESSION,
+    thresholds: InventoryEvalThresholds | None = None,
+) -> InventoryCorpusEvalReport:
+    """Aggregate entity P/R across all cases with a produced_inventory in the split."""
+    selected = [
+        c for c in cases
+        if c.split == split and c.produced_inventory is not None
+    ]
+    if not selected:
+        raise InventoryCorpusError(
+            f"no scoreable cases for split {split.value!r} "
+            "(cases need a produced_inventory)"
+        )
+
+    reports = [(c, evaluate_inventory(c.golden_inventory, c.produced_inventory)) for c in selected]
+    thresholds = thresholds or InventoryEvalThresholds()
+
+    total_g = sum(r.by_type[t].golden_total for _, r in reports for t in r.by_type)
+    total_p = sum(r.by_type[t].produced_total for _, r in reports for t in r.by_type)
+    total_m = sum(r.by_type[t].matched for _, r in reports for t in r.by_type)
+
+    agg_precision = _ratio(total_m, total_p)
+    agg_recall = _ratio(total_m, total_g, default=1.0)
+    agg_f1 = _f1(agg_precision, agg_recall)
+
+    violations: list[str] = []
+    if agg_recall < thresholds.min_recall:
+        violations.append(f"recall {agg_recall:.4f} < {thresholds.min_recall:.4f}")
+    if agg_precision < thresholds.min_precision:
+        violations.append(f"precision {agg_precision:.4f} < {thresholds.min_precision:.4f}")
+    if agg_f1 < thresholds.min_f1:
+        violations.append(f"f1 {agg_f1:.4f} < {thresholds.min_f1:.4f}")
+
+    return InventoryCorpusEvalReport(
+        split=split,
+        case_count=len(selected),
+        aggregate_precision=round(agg_precision, 4),
+        aggregate_recall=round(agg_recall, 4),
+        aggregate_f1=round(agg_f1, 4),
+        passed=not violations,
+        violations=violations,
+        cases=[r for _, r in reports],
+    )
 
 
 class EntityEval(BaseModel):

@@ -1,0 +1,168 @@
+{
+  "schema_version": "1",
+  "case_id": "payments-hub-dev-001",
+  "split": "dev",
+  "description": "Internet-facing payments hub \u2014 covers all six coverage-rule triggers",
+  "golden_inventory": {
+    "artifact_id": "art-c65021b10186",
+    "artifact_type": "asset_inventory",
+    "assessment_id": "asm-77f7d5420c4b",
+    "phase": "intake",
+    "schema_version": "1",
+    "version": 1,
+    "created_at": "2026-06-10T14:30:15.158207Z",
+    "producer": {
+      "agent": "golden-labeler",
+      "generation_route": "",
+      "prompt_version": "",
+      "tool_versions": {}
+    },
+    "systems": [
+      {
+        "id": "sys-7909cd4bad56",
+        "name": "Payments Hub",
+        "description": "",
+        "evidence_ids": [],
+        "criticality": "high",
+        "business_owner": "Payments Product",
+        "supports_critical_function": true
+      }
+    ],
+    "components": [
+      {
+        "id": "cmp-9dab01335759",
+        "name": "Public API",
+        "description": "",
+        "evidence_ids": [],
+        "system_id": "sys-7909cd4bad56",
+        "exposure": "internet_facing",
+        "technology": "ExampleHTTPd 2.4",
+        "cpe_candidates": [],
+        "is_admin_interface": false,
+        "is_genai": false
+      },
+      {
+        "id": "cmp-4c5813e8ec6e",
+        "name": "Admin Console",
+        "description": "",
+        "evidence_ids": [],
+        "system_id": "sys-7909cd4bad56",
+        "exposure": "internal",
+        "technology": "",
+        "cpe_candidates": [],
+        "is_admin_interface": true,
+        "is_genai": false
+      },
+      {
+        "id": "cmp-dad0d233b870",
+        "name": "AI Assistant",
+        "description": "",
+        "evidence_ids": [],
+        "system_id": "sys-7909cd4bad56",
+        "exposure": "internal",
+        "technology": "",
+        "cpe_candidates": [],
+        "is_admin_interface": false,
+        "is_genai": true
+      },
+      {
+        "id": "cmp-0cf6918e3f15",
+        "name": "Payment Processor",
+        "description": "",
+        "evidence_ids": [],
+        "system_id": "sys-7909cd4bad56",
+        "exposure": "internal",
+        "technology": "",
+        "cpe_candidates": [],
+        "is_admin_interface": false,
+        "is_genai": false
+      }
+    ],
+    "data_assets": [
+      {
+        "id": "dat-4c455e9f1dd2",
+        "name": "Customer Records",
+        "description": "",
+        "evidence_ids": [],
+        "system_id": "sys-7909cd4bad56",
+        "classification": "confidential",
+        "contains_pii": true
+      },
+      {
+        "id": "dat-ea60c01f02cc",
+        "name": "Transaction Log",
+        "description": "",
+        "evidence_ids": [],
+        "system_id": "sys-7909cd4bad56",
+        "classification": "confidential",
+        "contains_pii": false
+      }
+    ],
+    "data_flows": [
+      {
+        "id": "flw-29773b1ec425",
+        "name": "Internet to API",
+        "description": "",
+        "evidence_ids": [],
+        "source_component_id": "cmp-9dab01335759",
+        "target_component_id": "cmp-0cf6918e3f15",
+        "data_asset_ids": [],
+        "protocol": "",
+        "encrypted_in_transit": true,
+        "crosses_trust_boundary": true
+      },
+      {
+        "id": "flw-acafa1e6d537",
+        "name": "Processor to DB (unconfirmed encryption)",
+        "description": "",
+        "evidence_ids": [],
+        "source_component_id": "cmp-0cf6918e3f15",
+        "target_component_id": "cmp-4c5813e8ec6e",
+        "data_asset_ids": [],
+        "protocol": "",
+        "encrypted_in_transit": null,
+        "crosses_trust_boundary": true
+      }
+    ],
+    "third_parties": [
+      {
+        "id": "thp-953a5acee71c",
+        "name": "Acme KYC",
+        "description": "",
+        "evidence_ids": [],
+        "service": "KYC and identity verification",
+        "data_asset_ids": [
+          "dat-4c455e9f1dd2"
+        ],
+        "outsourcing_classification": "",
+        "has_exit_plan": null,
+        "concentration_risk": true
+      }
+    ],
+    "controls": [
+      {
+        "id": "ctl-c8d14ad9e9b1",
+        "name": "TLS in Transit",
+        "description": "",
+        "evidence_ids": [],
+        "taxonomy_ref": "NET-04",
+        "framework_refs": {},
+        "implemented": true,
+        "strength": "strong"
+      },
+      {
+        "id": "ctl-3902c97e8865",
+        "name": "MFA Admin",
+        "description": "",
+        "evidence_ids": [],
+        "taxonomy_ref": "IAM-07",
+        "framework_refs": {},
+        "implemented": true,
+        "strength": "strong"
+      }
+    ],
+    "evidence": [],
+    "missing_evidence": []
+  },
+  "produced_inventory": null
+}

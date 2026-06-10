@@ -1,0 +1,107 @@
+{
+  "schema_version": "1",
+  "case_id": "core-banking-reg-001",
+  "split": "regression",
+  "description": "DORA-critical core banking \u2014 no internet exposure, PII, third-party HSM",
+  "golden_inventory": {
+    "artifact_id": "art-93326739c68e",
+    "artifact_type": "asset_inventory",
+    "assessment_id": "asm-321cb8f753ac",
+    "phase": "intake",
+    "schema_version": "1",
+    "version": 1,
+    "created_at": "2026-06-10T14:30:15.162065Z",
+    "producer": {
+      "agent": "golden-labeler",
+      "generation_route": "",
+      "prompt_version": "",
+      "tool_versions": {}
+    },
+    "systems": [
+      {
+        "id": "sys-f900fbf18fcf",
+        "name": "Core Banking Platform",
+        "description": "",
+        "evidence_ids": [],
+        "criticality": "critical",
+        "business_owner": "Core Banking",
+        "supports_critical_function": true
+      }
+    ],
+    "components": [
+      {
+        "id": "cmp-313c2314e701",
+        "name": "Ledger Service",
+        "description": "",
+        "evidence_ids": [],
+        "system_id": "sys-f900fbf18fcf",
+        "exposure": "restricted",
+        "technology": "",
+        "cpe_candidates": [],
+        "is_admin_interface": false,
+        "is_genai": false
+      },
+      {
+        "id": "cmp-da53530db171",
+        "name": "Batch Processor",
+        "description": "",
+        "evidence_ids": [],
+        "system_id": "sys-f900fbf18fcf",
+        "exposure": "restricted",
+        "technology": "",
+        "cpe_candidates": [],
+        "is_admin_interface": false,
+        "is_genai": false
+      }
+    ],
+    "data_assets": [
+      {
+        "id": "dat-332783ce7f58",
+        "name": "Account Data",
+        "description": "",
+        "evidence_ids": [],
+        "system_id": "sys-f900fbf18fcf",
+        "classification": "secret",
+        "contains_pii": false
+      },
+      {
+        "id": "dat-ee1f8569e8df",
+        "name": "Customer PII",
+        "description": "",
+        "evidence_ids": [],
+        "system_id": "sys-f900fbf18fcf",
+        "classification": "confidential",
+        "contains_pii": true
+      }
+    ],
+    "data_flows": [],
+    "third_parties": [
+      {
+        "id": "thp-4af06eb95f2a",
+        "name": "Cloud HSM Provider",
+        "description": "",
+        "evidence_ids": [],
+        "service": "Hardware security module as a service",
+        "data_asset_ids": [],
+        "outsourcing_classification": "",
+        "has_exit_plan": false,
+        "concentration_risk": true
+      }
+    ],
+    "controls": [
+      {
+        "id": "ctl-1256af18ef3d",
+        "name": "Encryption at Rest",
+        "description": "",
+        "evidence_ids": [],
+        "taxonomy_ref": "DAT-02",
+        "framework_refs": {},
+        "implemented": true,
+        "strength": "strong"
+      }
+    ],
+    "evidence": [],
+    "missing_evidence": []
+  },
+  "produced_inventory": null
+}

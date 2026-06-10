@@ -7,9 +7,13 @@ from riskos.intake.inventory import (
     load_inventory_generation,
     materialize_inventory,
 )
+from riskos.intake.worker import IntakeResult, IntakeWorker, IntakeWorkerConfig
 
 __all__ = [
     "IngestionError",
+    "IntakeResult",
+    "IntakeWorker",
+    "IntakeWorkerConfig",
     "assess_completeness",
     "classify_document",
     "create_inventory_extraction",

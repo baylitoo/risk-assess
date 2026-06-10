@@ -1,0 +1,5 @@
+# Regression release gates. Tighten these as the labeled corpus grows.
+max_false_safe_rate: 0.0
+max_unsupported_critical_rate: 0.0
+min_precision: 1.0
+min_score_agreement: 1.0

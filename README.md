@@ -186,6 +186,12 @@ riskctl epss get CVE-2026-0002
 riskctl triage CVE-2026-0001 CVE-2026-0002 CVE-1999-9999
 ```
 
+Run the checked-in regression corpus and enforce release thresholds:
+
+```powershell
+riskeval evals/corpus --thresholds config/eval_thresholds.yaml
+```
+
 Use another local mirror by setting `RISKOS_MIRROR_DIR`:
 
 ```powershell
@@ -247,11 +253,12 @@ workflow.advance("risk.officer@example.test", human_approved=True)
 ```text
 config/                 Versioned deterministic risk methodology
 data/mirror/            Sample local vulnerability intelligence mirror
+evals/corpus/           Versioned dev, regression, and holdout eval cases
 policies/               Per-agent least-privilege YAML policies
 src/riskos/
   cli/                  riskctl vulnerability intelligence CLI
   critic/               Deterministic missing-risk coverage checks
-  evals/                Assessment quality and false-safe metrics
+  evals/                Quality metrics, corpus runner, and release gates
   intake/               Intake completeness gate
   policy/               Policy-as-code engine
   runtime/              Agent harness, artifact workspace, audit log
@@ -292,7 +299,7 @@ WORM audit storage, secret management, and in-region model serving.
 **Next major work**
 
 - Real document and diagram ingestion into asset/data-flow inventories
-- Golden assessment corpus and phase-level regression harness
+- Grow the golden assessment corpus and add phase-level extraction evals
 - Provider-abstracted LLM gateway and bounded model worker loop
 - Phase 1 analyst workflow and reviewer label capture
 - Durable orchestration, persistent data stores, and review console
@@ -303,6 +310,7 @@ Run the full verification suite:
 
 ```powershell
 python -m pytest -q
+riskeval evals/corpus --thresholds config/eval_thresholds.yaml
 python -m compileall -q src tests
 git diff --check
 ```

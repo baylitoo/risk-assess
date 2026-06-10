@@ -34,6 +34,9 @@ class EvalReport:
     score_agreement: float            # matched pairs within ±1 band
     missed_golden_ids: list[str] = field(default_factory=list)
     unsupported_critical_ids: list[str] = field(default_factory=list)
+    high_produced_total: int = 0
+    comparable_scores: int = 0
+    agreed_scores: int = 0
 
 
 def evaluate_register(
@@ -95,6 +98,9 @@ def evaluate_register(
         score_agreement=_ratio(agree, comparable, default=1.0),
         missed_golden_ids=missed,
         unsupported_critical_ids=unsupported,
+        high_produced_total=len(high_produced),
+        comparable_scores=comparable,
+        agreed_scores=agree,
     )
 
 

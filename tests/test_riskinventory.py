@@ -31,8 +31,8 @@ def test_riskinventory_accepts_only_structured_generation(tmp_path, capsys):
         [
             str(corpus_path),
             str(generation_path),
-            "--model-id",
-            "provider-model-v1",
+            "--generation-route",
+            "inventory-extraction",
             "--extraction-output",
             str(extraction_path),
         ]
@@ -43,7 +43,7 @@ def test_riskinventory_accepts_only_structured_generation(tmp_path, capsys):
     assert code == 0
     assert inventory["artifact_type"] == "asset_inventory"
     assert extraction["artifact_type"] == "inventory_extraction"
-    assert extraction["producer"]["model_id"] == "provider-model-v1"
+    assert extraction["producer"]["generation_route"] == "inventory-extraction"
 
 
 def test_riskinventory_exposes_provider_json_schema(capsys):

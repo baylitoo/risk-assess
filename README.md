@@ -7,7 +7,7 @@ gates.
 
 The project is currently an early foundation, not a production assessment
 platform. The implemented code establishes the contracts that later document
-ingestion, model workers, durable orchestration, and review interfaces will use.
+ingestion, generation workers, durable orchestration, and review interfaces will use.
 
 ## Design Principles
 
@@ -137,7 +137,7 @@ flowchart TB
     AgentHarness --> AuditStore
 
     subgraph DataPlane["Target data and tool plane"]
-        LLM["In-region LLM gateway<br/>Bedrock / provider abstraction"]
+        LLM["Company-managed LiteLLM proxy<br/>task-route resolution"]
         Docs["Object store + document ingestion"]
         Postgres["Postgres + pgvector"]
         Mirror["Local vulnerability intel mirror"]
@@ -204,7 +204,7 @@ materialize generated inventory proposals:
 ```powershell
 riskinventory --schema > inventory-generation-schema.json
 riskinventory corpus.json generation.json `
-  --model-id provider-model-v1 `
+  --generation-route inventory-extraction `
   --extraction-output inventory-extraction.json `
   --inventory-output asset-inventory.json
 ```
@@ -304,7 +304,7 @@ ROADMAP.md              Target architecture and delivery roadmap
 
 The local runtime is a development implementation. Production deployment still
 requires hardened sandboxing, durable workflow execution, tenant isolation,
-WORM audit storage, secret management, and in-region model serving.
+WORM audit storage, secret management, and in-region generation routing.
 
 ## Roadmap Status
 
@@ -320,10 +320,10 @@ WORM audit storage, secret management, and in-region model serving.
 
 **Next major work**
 
-- Build provider-backed structured inventory extraction and phase-level inventory evals
+- Build LiteLLM-routed structured inventory extraction and phase-level inventory evals
 - Add PDF/DOCX/diagram adapters behind the existing corpus contract
 - Grow the golden assessment corpus and add phase-level extraction evals
-- Provider-abstracted LLM gateway and bounded model worker loop
+- LiteLLM proxy integration and bounded generation worker loop
 - Phase 1 analyst workflow and reviewer label capture
 - Durable orchestration, persistent data stores, and review console
 

@@ -1,82 +1,65 @@
-"""Provider-abstracted LLM gateway Protocol.
+"""Model-agnostic structured-generation boundary.
 
-All LLM calls in the platform go through this Protocol. The concrete adapter
-(LiteLLM-backed, company-managed) is injected by the harness; routing to the
-appropriate model tier is handled externally — callers never reference a
-specific provider or model family.
-
-Why a Protocol (structural subtyping) rather than an ABC:
-- The concrete adapter lives in a separate deployment layer with its own
-  dependencies; forcing it to inherit from a base class couples the layers.
-- The fake test double lives here without importing any gateway SDK, and
-  satisfies the Protocol at runtime.
+Application code selects a task-level route. A company-managed LiteLLM proxy
+resolves that route to its configured deployment. Providers and model names
+never enter domain code, prompts, or workflow artifacts.
 """
 
 from __future__ import annotations
 
 from typing import Protocol, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 T = TypeVar("T", bound=BaseModel)
 
 
-class LLMGateway(Protocol):
-    """Minimal structured-generation contract.
+class StructuredGenerationRequest(BaseModel):
+    """Serializable request sent through the managed generation proxy."""
 
-    Returns a *validated* Pydantic model instance. The concrete adapter is
-    responsible for prompting, parsing, retrying, and raising ``GatewayError``
-    on unrecoverable failure. The caller never sees raw model output.
-    """
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    route: str = Field(min_length=1)
+    system_prompt: str = Field(min_length=1)
+    user_message: str = Field(min_length=1)
+    prompt_version: str = Field(min_length=1)
+    max_output_tokens: int = Field(default=8192, ge=1)
+    timeout_seconds: float = Field(default=120.0, gt=0)
+
+
+class StructuredGenerationGateway(Protocol):
+    """Return only validated structured output for a proxy-routed request."""
 
     def generate_structured(
         self,
-        system_prompt: str,
-        user_message: str,
+        request: StructuredGenerationRequest,
         response_model: type[T],
-        model_id: str,
-        max_tokens: int = 8192,
     ) -> T:
         ...
 
 
-class GatewayError(Exception):
-    """Raised by concrete adapters on unrecoverable generation failure."""
+class GenerationGatewayError(Exception):
+    """Raised when the managed generation proxy cannot satisfy a request."""
 
 
-class FakeLLMGateway:
-    """Deterministic test double — returns pre-configured responses by type.
-
-    Supports optional call recording so tests can assert on prompts
-    without coupling to internal implementation details.
-    """
+class FakeStructuredGenerationGateway:
+    """Deterministic test double with serialized request recording."""
 
     def __init__(self) -> None:
         self._responses: dict[type[BaseModel], BaseModel] = {}
-        self.calls: list[dict] = []
+        self.calls: list[StructuredGenerationRequest] = []
 
     def set_response(self, response_model: type[BaseModel], response: BaseModel) -> None:
         self._responses[response_model] = response
 
     def generate_structured(
         self,
-        system_prompt: str,
-        user_message: str,
+        request: StructuredGenerationRequest,
         response_model: type[BaseModel],
-        model_id: str,
-        max_tokens: int = 8192,
     ) -> BaseModel:
-        self.calls.append(
-            dict(
-                system_prompt=system_prompt,
-                user_message=user_message,
-                response_model=response_model,
-                model_id=model_id,
-                max_tokens=max_tokens,
-            )
-        )
+        self.calls.append(request)
         if response_model not in self._responses:
-            raise KeyError(
-                f"FakeLLMGateway: no response configured for {response_model.__name__!r}"
+            raise GenerationGatewayError(
+                f"no response configured for {response_model.__name__!r}"
             )
         return self._responses[response_model]

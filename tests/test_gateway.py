@@ -1,54 +1,77 @@
 import pytest
+from pydantic import ValidationError
 
-from riskos.gateway import FakeLLMGateway, GatewayError
+from riskos.gateway import (
+    FakeStructuredGenerationGateway,
+    GenerationGatewayError,
+    StructuredGenerationRequest,
+)
 from riskos.schemas.generation import InventoryGeneration
 
 
+def _request(route: str = "inventory-extraction") -> StructuredGenerationRequest:
+    return StructuredGenerationRequest(
+        route=route,
+        system_prompt="system",
+        user_message="user",
+        prompt_version="1",
+    )
+
+
 def test_fake_returns_configured_response():
-    gateway = FakeLLMGateway()
+    gateway = FakeStructuredGenerationGateway()
     response = InventoryGeneration()
     gateway.set_response(InventoryGeneration, response)
 
-    result = gateway.generate_structured(
-        system_prompt="sys", user_message="usr",
-        response_model=InventoryGeneration, model_id="test",
-    )
+    result = gateway.generate_structured(_request(), InventoryGeneration)
 
     assert result is response
 
 
-def test_fake_records_calls():
-    gateway = FakeLLMGateway()
+def test_fake_records_serializable_requests():
+    gateway = FakeStructuredGenerationGateway()
     gateway.set_response(InventoryGeneration, InventoryGeneration())
 
-    gateway.generate_structured("sys", "usr", InventoryGeneration, "m1")
-    gateway.generate_structured("sys2", "usr2", InventoryGeneration, "m2")
+    gateway.generate_structured(_request("inventory-extraction"), InventoryGeneration)
+    gateway.generate_structured(_request("risk-synthesis"), InventoryGeneration)
 
-    assert len(gateway.calls) == 2
-    assert gateway.calls[0]["model_id"] == "m1"
-    assert gateway.calls[1]["model_id"] == "m2"
+    assert gateway.calls[0].route == "inventory-extraction"
+    assert gateway.calls[1].route == "risk-synthesis"
+    assert StructuredGenerationRequest.model_validate_json(
+        gateway.calls[0].model_dump_json()
+    ) == gateway.calls[0]
 
 
 def test_fake_raises_on_unconfigured_type():
-    gateway = FakeLLMGateway()
+    gateway = FakeStructuredGenerationGateway()
 
-    with pytest.raises(KeyError, match="InventoryGeneration"):
-        gateway.generate_structured("sys", "usr", InventoryGeneration, "test")
+    with pytest.raises(GenerationGatewayError, match="InventoryGeneration"):
+        gateway.generate_structured(_request(), InventoryGeneration)
 
 
-def test_fake_call_contains_full_context():
-    gateway = FakeLLMGateway()
-    gateway.set_response(InventoryGeneration, InventoryGeneration())
-
-    gateway.generate_structured(
-        system_prompt="my-sys",
-        user_message="my-usr",
-        response_model=InventoryGeneration,
-        model_id="claude-test",
-        max_tokens=1234,
+def test_request_records_budgets_and_prompt_version():
+    request = StructuredGenerationRequest(
+        route="inventory-extraction",
+        system_prompt="system",
+        user_message="user",
+        prompt_version="2",
+        max_output_tokens=1234,
+        timeout_seconds=30,
     )
 
-    call = gateway.calls[0]
-    assert call["system_prompt"] == "my-sys"
-    assert call["user_message"] == "my-usr"
-    assert call["max_tokens"] == 1234
+    assert request.prompt_version == "2"
+    assert request.max_output_tokens == 1234
+    assert request.timeout_seconds == 30
+
+
+def test_request_rejects_model_or_provider_fields():
+    with pytest.raises(ValidationError, match="extra_forbidden"):
+        StructuredGenerationRequest.model_validate(
+            {
+                "route": "inventory-extraction",
+                "system_prompt": "system",
+                "user_message": "user",
+                "prompt_version": "1",
+                "model_id": "forbidden",
+            }
+        )

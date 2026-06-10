@@ -51,7 +51,7 @@
     │              │              │              │
 ┌───▼──────────────▼──────────────▼──────────────▼──────────────────┐
 │  TOOL & DATA PLANE                                                 │
-│  • LLM gateway (Bedrock/Claude, rate-limit + cache + failover)     │
+│  • Company-managed LiteLLM proxy (routing, rate-limit, cache)      │
 │  • Sandboxed CLI runtime (per-run container, no-egress default)    │
 │  • MCP servers: internal-docs search, vuln-intel, media-intel      │
 │  • Stores: Postgres (+pgvector), object store (raw docs),          │
@@ -63,9 +63,9 @@
 
 ### 1.1 Model serving — the bank constraint
 
-- **No first-party SaaS API.** Documents are confidential; serve Claude via **AWS Bedrock** (or Vertex / an internal LLM gateway) inside the bank's VPC. Note: Anthropic's Managed Agents is *not* available on Bedrock — so **we own the agent loop** (Claude API + tool use, manual or SDK tool-runner).
-- **One LLM gateway** in front of all model calls: enforces per-team quotas, retries/failover across regions, strips/flags PII where required, records every request/response pair to the audit store, and centralizes **prompt caching** discipline (frozen system prompts, deterministic tool ordering — cache hits are the difference between viable and absurd cost on document-heavy work).
-- **Model tiering:** frontier model (Opus-class) for synthesis, threat modeling, and final report; mid-tier (Sonnet-class) for specialist extraction/correlation agents; small model (Haiku-class) for classification, routing, chunk relevance scoring. Model choice is config, pinned per assessment for reproducibility.
+- **No provider or model coupling in RiskOS.** Every generation request goes through a company-managed **LiteLLM proxy**. Application code selects a stable task route such as `inventory-extraction` or `risk-synthesis`; the proxy owns deployment selection, provider policy, failover, and residency controls.
+- **One managed proxy** in front of all generation calls: enforces per-team quotas, retries/failover, PII controls, request tracing, and prompt-caching discipline. RiskOS persists the task route, prompt version, schema version, and budgets for reproducibility without recording provider/model identifiers in domain artifacts.
+- **Task-route tiering:** extraction, classification, synthesis, and review routes are configured externally. Route-to-deployment changes do not require RiskOS code or prompt changes.
 
 ### 1.2 Orchestration — durable execution
 
@@ -81,8 +81,8 @@ An assessment runs minutes-to-days (human gates included). Use **Temporal** (or 
 Two pipelines:
 
 **A. Per-assessment intake** (runs when a project submits its dossier):
-1. Normalize: PDF/DOCX/XLSX/Visio/draw.io → text + images. Diagrams go through a **vision pass** (Claude vision): extract components, data flows, trust boundaries into a structured graph (nodes/edges JSON) — this becomes the input for threat modeling, *not* the raw pixels.
-2. Classify & route: which doc is the SATS, which is the network spec, which is boilerplate. Small model + rules.
+1. Normalize: PDF/DOCX/XLSX/Visio/draw.io → text + images. Diagrams go through a **proxy-routed vision pass**: extract components, data flows, trust boundaries into a structured graph (nodes/edges JSON) — this becomes the input for threat modeling, *not* the raw pixels.
+2. Classify & route: which doc is the SATS, which is the network spec, which is boilerplate. Proxy-routed classifier + rules.
 3. Chunk with structure awareness (headings, tables kept whole), embed → **pgvector**, with rich metadata (doc type, section, system, classification level).
 4. Extract an **asset & dataflow inventory**: systems, software + versions (→ CPE candidates), network zones, third parties, data categories. This structured inventory is the backbone the agents work against.
 
@@ -120,11 +120,11 @@ Notes:
 
 This was a core ask, so the design stance in detail:
 
-**Why a CLI at all (vs. N individual tool definitions):** a suite of vuln operations (query NVD, resolve CPEs, pull EPSS, diff scanner output, check KEV) is 15–30 operations. As flat tools they bloat the prompt and the model composes them poorly. A CLI gives the agent *programmatic leverage*: it can pipe, filter, loop — and you ship one tool (`bash` in a sandbox with `riskctl` installed) plus tool-search/skill docs.
+**Why a CLI at all (vs. N individual tool definitions):** a suite of vuln operations (query NVD, resolve CPEs, pull EPSS, diff scanner output, check KEV) is 15–30 operations. As flat tools they bloat the prompt and the agent composes them poorly. A CLI gives the agent *programmatic leverage*: it can pipe, filter, loop — and you ship one tool (`bash` in a sandbox with `riskctl` installed) plus tool-search/skill docs.
 
-**Design rules (learned from how Claude Code itself works):**
+**Design rules for agent CLI workflows:**
 1. **Typed subcommands, JSON-first output.** `riskctl cve get CVE-2026-1234 --json`, `riskctl cpe match "nginx 1.24" --json`, `riskctl epss top --cpe-file inventory.json --min 0.1`. Deterministic, schema'd stdout; errors to stderr with actionable messages (the agent reads them and self-corrects).
-2. **`--help` is the contract.** The model discovers usage via help text — write help for an LLM audience: examples, exit codes, common pitfalls. Ship a `SKILL.md`-style usage guide loaded on demand rather than burning system-prompt tokens.
+2. **`--help` is the contract.** The agent discovers usage via help text — write help for an agent audience: examples, exit codes, common pitfalls. Ship a `SKILL.md`-style usage guide loaded on demand rather than burning system-prompt tokens.
 3. **Sandbox per run.** Each agent run gets a fresh container: read-only mount of the assessment workspace, writable scratch dir, **no network egress except the internal intel mirror** via the CLI's own client. The credential for the intel APIs lives in the CLI's environment injected by the harness — never in the prompt or the conversation (prompts are persisted; secrets in them leak into the audit log).
 4. **Promote dangerous ops out of the CLI.** Anything irreversible or outward-facing (publish report, open Jira ticket, trigger an *active* scan against a live system) is a **dedicated tool** with typed args, so the harness can gate it (auto-deny, or human confirmation), render it, and audit it specifically. Rule of thumb: bash/CLI for breadth and read-paths; dedicated tools where you need to gate, render, audit, or parallelize.
 5. **Budget the loop.** Max tool calls per phase, max tokens per run (the model is told its budget), wall-clock timeout from Temporal. A flailing agent must fail fast and surface a structured "blocked: missing X" rather than burn the budget.
@@ -216,14 +216,14 @@ This is the moat and the hardest 40% of the work.
 - **Declarative policy layer (Phase 3):** tool authorization, data access, and side-effect gates move from scattered if-statements into an OPA/Cedar-style policy engine — per-agent allow/deny matrices as versioned policy-as-code. The auditor question "show me the rule that allowed this" gets a file and a commit hash, not an archaeology session.
 - **Platform as a monitored asset:** admin actions, tool calls, policy denials, and data access feed the bank's SIEM; the platform gets its own threat register (tool poisoning, retrieval poisoning, cross-agent contamination, model supply chain) and red-team suite, not just an injection canary.
 - **Audit trail:** append-only event log (WORM storage) of every span: model id + version, full prompt hash, tool calls + results, human actions. Retention ≥ the bank's record-keeping rules (EU AI Act Art. 19 sets the floor for high-risk AI logging).
-- **Data residency:** all inference in-region via Bedrock/VPC endpoints; no data leaves the boundary; web-facing intel collection runs in a separate, segregated collector that imports into the mirror.
+- **Data residency:** the company-managed LiteLLM proxy enforces approved in-region deployments; no data leaves the boundary. Web-facing intel collection runs in a separate, segregated collector that imports into the mirror.
 
 ---
 
 ## 7. Delivery roadmap
 
 ### Phase 0 — Foundations & proof of grounding (weeks 1–6)
-- Stand up: LLM gateway (Bedrock + Claude), Postgres/pgvector, object store, Temporal dev cluster, OTel→Langfuse tracing.
+- Stand up: company-managed LiteLLM proxy integration, Postgres/pgvector, object store, Temporal dev cluster, OTel→Langfuse tracing.
 - Build intake pipeline v1 (PDF/diagram → text + dataflow graph) and the asset-inventory extractor.
 - Acquire and label the golden set from past assessments. Build the eval harness *before* the agents.
 - **Exit criterion:** inventory extraction ≥ target P/R on golden set; one document dossier flows end-to-end into structured artifacts.
@@ -258,9 +258,9 @@ This is the moat and the hardest 40% of the work.
 
 | Layer | Choice | Why |
 |---|---|---|
-| Models | Claude via AWS Bedrock (Opus/Sonnet/Haiku tiers) **behind a provider-abstracted gateway** | In-VPC, best agentic models; tier per task; the gateway is the abstraction — swapping providers is a config change, pinning per assessment is the invariant |
+| Generation | Company-managed LiteLLM proxy with stable task routes | RiskOS remains model/provider agnostic; routing, failover, and residency policy stay external |
 | Policy | OPA/Cedar policy-as-code for tool authz & side-effect gates | Auditable rules, per-agent allow/deny matrices |
-| Agent loop | Anthropic SDK tool-runner / manual loop, Python | Own the loop (no Managed Agents on Bedrock); approval gates need manual control |
+| Agent loop | RiskOS-owned bounded loop, Python | Approval gates, budgets, structured outputs, and audit behavior remain under platform control |
 | Orchestration | Temporal | Durable, human-gate signals, replayable history |
 | Data | Postgres + pgvector, S3, Neo4j-or-Postgres graph | Boring, bank-approvable |
 | Tool surface | Internal MCP servers (retrieval) + `riskctl` CLI in per-run sandbox (composition) + dedicated gated tools (side effects) | §3 |

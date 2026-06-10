@@ -24,7 +24,7 @@ def repo_root() -> Path:
 
 @pytest.fixture()
 def producer() -> Producer:
-    return Producer(agent="test", model_id="none", prompt_version="0")
+    return Producer(agent="test", prompt_version="0")
 
 
 @pytest.fixture()

@@ -95,7 +95,9 @@ def test_generation_models_reject_unstructured_extra_fields(corpus):
 def test_materializer_mints_stable_ids_and_preserves_provenance(corpus):
     generation = _generation(corpus.chunks[0].chunk_id)
     extraction = create_inventory_extraction(
-        corpus, generation, Producer(agent="inventory_extractor", model_id="test-model")
+        corpus,
+        generation,
+        Producer(agent="inventory_extractor", generation_route="inventory-extraction"),
     )
 
     inventory = materialize_inventory(corpus, extraction)
@@ -114,7 +116,7 @@ def test_extraction_and_inventory_artifacts_round_trip_json(corpus):
     extraction = create_inventory_extraction(
         corpus,
         _generation(corpus.chunks[0].chunk_id),
-        Producer(agent="inventory_extractor", model_id="model-v1"),
+        Producer(agent="inventory_extractor", generation_route="inventory-extraction"),
     )
     inventory = materialize_inventory(corpus, extraction)
 

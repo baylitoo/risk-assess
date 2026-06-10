@@ -1,7 +1,7 @@
 """Inventory extraction: DocumentCorpus → InventoryExtraction.
 
 This module owns the extraction prompt and wires the gateway call into
-the validated pipeline. The LLM is asked to produce a structured
+the validated pipeline. The generation gateway is asked to produce a structured
 ``InventoryGeneration``; the result is immediately passed through
 ``create_inventory_extraction`` for chunk-ID validation before it is
 stored as an artifact.
@@ -16,7 +16,7 @@ Prompt design notes (ROADMAP §3 rule 2 — "help text is the contract"):
 
 from __future__ import annotations
 
-from riskos.gateway import LLMGateway
+from riskos.gateway import StructuredGenerationGateway, StructuredGenerationRequest
 from riskos.intake.inventory import InventoryGenerationError, create_inventory_extraction
 from riskos.schemas.artifacts import DocumentCorpus, InventoryExtraction, Producer
 from riskos.schemas.generation import InventoryGeneration
@@ -62,13 +62,15 @@ OUTPUT
 
 def extract_inventory(
     corpus: DocumentCorpus,
-    gateway: LLMGateway,
+    gateway: StructuredGenerationGateway,
     producer: Producer,
-    model_id: str = "",
-    max_tokens: int = 8192,
+    route: str = "inventory-extraction",
+    prompt_version: str = "1",
+    max_output_tokens: int = 8192,
+    timeout_seconds: float = 120.0,
     version: int = 1,
 ) -> InventoryExtraction:
-    """Call the LLM to extract a structured inventory from a document corpus.
+    """Call the generation gateway to extract an inventory from a document corpus.
 
     Validates the generation output against the corpus chunk IDs immediately
     so any hallucinated chunk references are caught before the artifact is
@@ -77,12 +79,17 @@ def extract_inventory(
     if version < 1:
         raise InventoryGenerationError("version must be positive")
     user_message = _format_corpus(corpus)
-    generation = gateway.generate_structured(
+    request = StructuredGenerationRequest(
+        route=route,
         system_prompt=_SYSTEM_PROMPT,
         user_message=user_message,
+        prompt_version=prompt_version,
+        max_output_tokens=max_output_tokens,
+        timeout_seconds=timeout_seconds,
+    )
+    generation = gateway.generate_structured(
+        request=request,
         response_model=InventoryGeneration,
-        model_id=model_id,
-        max_tokens=max_tokens,
     )
     return create_inventory_extraction(corpus, generation, producer, version=version)
 

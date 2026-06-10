@@ -24,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("corpus", type=Path, nargs="?")
     parser.add_argument("generation", type=Path, nargs="?")
     parser.add_argument("--schema", action="store_true")
-    parser.add_argument("--model-id", default="")
+    parser.add_argument("--generation-route", default="")
     parser.add_argument("--prompt-version", default="")
     parser.add_argument("--minimum-confidence", type=float, default=0.0)
     parser.add_argument("--version", type=int, default=1)
@@ -56,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
             generation,
             Producer(
                 agent="inventory_extractor",
-                model_id=args.model_id,
+                generation_route=args.generation_route,
                 prompt_version=args.prompt_version,
             ),
             version=args.version,

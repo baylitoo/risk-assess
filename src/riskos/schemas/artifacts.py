@@ -33,7 +33,7 @@ class Producer(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     agent: str                      # e.g. "vuln_operator"
-    model_id: str = ""              # pinned model version, empty for pure code
+    generation_route: str = ""      # task route resolved externally by the proxy
     prompt_version: str = ""
     tool_versions: dict[str, str] = Field(default_factory=dict)
 

@@ -1,15 +1,15 @@
 """Provider-abstracted LLM gateway Protocol.
 
-All LLM calls in the platform go through this Protocol. Swapping providers
-(Bedrock / direct API / stub) is a config change — one concrete adapter per
-environment, injected by the harness.
+All LLM calls in the platform go through this Protocol. The concrete adapter
+(LiteLLM-backed, company-managed) is injected by the harness; routing to the
+appropriate model tier is handled externally — callers never reference a
+specific provider or model family.
 
 Why a Protocol (structural subtyping) rather than an ABC:
-- Provider adapters live in a different deployment layer (they pull in the
-  Anthropic SDK, Bedrock client, etc.); forcing them to inherit from a base
-  class would create a coupling across the dependency boundary.
-- The fake test double can be in this module without importing any provider
-  SDK, and it satisfies the Protocol at runtime.
+- The concrete adapter lives in a separate deployment layer with its own
+  dependencies; forcing it to inherit from a base class couples the layers.
+- The fake test double lives here without importing any gateway SDK, and
+  satisfies the Protocol at runtime.
 """
 
 from __future__ import annotations

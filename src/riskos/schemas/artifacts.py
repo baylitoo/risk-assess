@@ -157,6 +157,52 @@ class AssetInventory(Artifact):
     missing_evidence: list[str] = Field(default_factory=list)  # intake bounce list
 
 
+class AssessmentModule(StrEnum):
+    DORA = "dora"
+    PRIVACY = "privacy"
+    GENAI = "genai"
+    ADVERSARY = "adversary"
+
+
+class AssessmentDepth(StrEnum):
+    FAST_TRACK = "fast_track"
+    FULL = "full"
+
+
+class MissingEvidenceRequirement(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    rule_id: str
+    description: str
+    entity_ids: list[str] = Field(default_factory=list)
+
+
+class IntakeAssessment(Artifact):
+    """Deterministic intake completeness gate output."""
+
+    artifact_type: str = "intake_assessment"
+    complete: bool
+    requirements: list[MissingEvidenceRequirement] = Field(default_factory=list)
+
+
+class ScopeDecision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    subject: str
+    reason: str
+    entity_ids: list[str] = Field(default_factory=list)
+
+
+class AssessmentScope(Artifact):
+    """Phase 1 output confirmed by the first human review gate."""
+
+    artifact_type: str = "assessment_scope"
+    depth: AssessmentDepth
+    modules: list[AssessmentModule] = Field(default_factory=list)
+    scheduled_agents: list[str] = Field(default_factory=list)
+    decisions: list[ScopeDecision] = Field(default_factory=list)
+
+
 class VulnerabilityFindings(Artifact):
     """Vuln-operator output."""
 

@@ -1,0 +1,11 @@
+agent: scope_engine
+can_read:
+  - artifact.asset_inventory
+  - artifact.intake_assessment
+can_write:
+  - artifact.assessment_scope
+cannot:
+  - read:document.raw.*
+  - read:mirror.*
+  - execute:ticket.create
+  - execute:report.publish

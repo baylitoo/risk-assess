@@ -29,8 +29,9 @@ def test_synthesizer_injection_firewall(engine):
 
 
 def test_no_agent_can_publish(engine):
-    for agent in ("vuln_operator", "internal_docs_analyst", "risk_synthesizer",
-                  "critic", "report_writer"):
+    for agent in ("intake_worker", "scope_engine", "vuln_operator",
+                  "internal_docs_analyst", "risk_synthesizer", "critic",
+                  "report_writer"):
         assert not engine.check(agent, "execute", "report.publish")
 
 
@@ -59,3 +60,9 @@ def test_decision_is_auditable(engine):
     # "show me the rule that denied this" → a file and a rule string
     assert d.rule == "cannot: execute:scan.active"
     assert d.source_file.endswith("vuln_operator.yaml")
+
+
+def test_scope_engine_is_structured_artifacts_only(engine):
+    assert engine.check("scope_engine", "read", "artifact.asset_inventory")
+    assert engine.check("scope_engine", "write", "artifact.assessment_scope")
+    assert not engine.check("scope_engine", "read", "document.raw.sats")

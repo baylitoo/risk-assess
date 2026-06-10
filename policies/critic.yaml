@@ -1,0 +1,10 @@
+agent: critic
+can_read:
+  - artifact.*
+can_write:
+  - artifact.critique
+cannot:
+  - read:document.raw.*
+  - write:artifact.risk_register   # the critic challenges; it never edits the register itself
+  - execute:ticket.create
+  - execute:report.publish

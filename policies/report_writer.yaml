@@ -1,0 +1,10 @@
+agent: report_writer
+can_read:
+  - artifact.*
+  - corpus.report_templates.*
+can_write:
+  - artifact.draft_report
+cannot:
+  - read:document.raw.*
+  - execute:report.publish       # publish is a human-gated workflow step, not an agent right
+  - execute:ticket.create

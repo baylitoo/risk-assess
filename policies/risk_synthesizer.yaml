@@ -1,0 +1,10 @@
+agent: risk_synthesizer
+can_read:
+  - artifact.*                   # consumes structured artifacts only — never raw docs
+can_write:
+  - artifact.risk_register
+cannot:
+  - read:document.raw.*          # injection firewall: synthesis sees artifacts, not documents
+  - read:mirror.*
+  - execute:ticket.create
+  - execute:report.publish

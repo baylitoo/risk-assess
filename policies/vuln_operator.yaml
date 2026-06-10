@@ -1,0 +1,14 @@
+agent: vuln_operator
+can_read:
+  - artifact.asset_inventory
+  - mirror.nvd*
+  - mirror.kev*
+  - mirror.epss*
+  - scanner.import.*
+can_write:
+  - artifact.vulnerability_findings
+cannot:
+  - read:document.raw.*          # never consumes raw external docs (injection surface)
+  - execute:ticket.create
+  - execute:report.publish
+  - execute:scan.active          # active scans are a dedicated gated tool, not this agent

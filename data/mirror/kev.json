@@ -1,0 +1,12 @@
+{
+  "catalogVersion": "sample",
+  "vulnerabilities": [
+    {
+      "cveID": "CVE-2026-0001",
+      "vendorProject": "Example",
+      "product": "ExampleHTTPd",
+      "dateAdded": "2026-02-01",
+      "knownRansomwareCampaignUse": "Known"
+    }
+  ]
+}

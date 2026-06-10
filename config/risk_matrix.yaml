@@ -1,0 +1,62 @@
+# Risk methodology v1 — ISO 27005-aligned semi-quantitative matrix.
+# This file IS the methodology: versioned, reviewed by the risk methodology
+# owners, and pinned per assessment. The model proposes factor LEVELS; the
+# scorer turns levels into numbers. Changing anything here is a methodology
+# change, not a tuning knob.
+methodology_version: "1.0"
+
+likelihood_factors:
+  exposure:
+    restricted: 1
+    internal: 1
+    partner: 2
+    internet_facing: 3
+  exploitability:            # KEV-listed ⇒ weaponized, by rule
+    theoretical: 1
+    difficult: 2
+    practical: 3
+    weaponized: 4
+  threat_activity:           # from intel agent's landscape brief
+    low: 1
+    moderate: 2
+    high: 3
+
+# Sum of likelihood factor points -> likelihood level 1..5
+likelihood_levels:
+  - {max_points: 3, level: 1}
+  - {max_points: 4, level: 2}
+  - {max_points: 6, level: 3}
+  - {max_points: 8, level: 4}
+  - {max_points: 99, level: 5}
+
+impact_factor:               # worst-case across C/I/A, per bank impact scale
+  negligible: 1
+  minor: 2
+  moderate: 3
+  major: 4
+  severe: 5
+
+# Residual: control strength subtracts likelihood levels (floor 1).
+control_strength_reduction:
+  absent: 0
+  weak: 0
+  partial: 1
+  strong: 2
+
+# score = likelihood_level * impact_level  (1..25)
+bands:
+  - {max_score: 4,  band: low}
+  - {max_score: 9,  band: medium}
+  - {max_score: 14, band: high}
+  - {max_score: 19, band: very_high}
+  - {max_score: 25, band: critical}
+
+confidence:
+  # severity bands at/above this require confidence >= threshold,
+  # otherwise the finding is demoted to requires_confirmation.
+  gate_band: high
+  threshold: 0.6
+  validation_multiplier:
+    unvalidated: 0.8
+    tool_corroborated: 1.0
+    human_confirmed: 1.0

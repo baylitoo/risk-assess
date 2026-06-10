@@ -1,0 +1,14 @@
+agent: internal_docs_analyst
+can_read:
+  - document.raw.*               # reads untrusted docs → therefore writes only artifacts
+  - corpus.taxonomy.*
+  - corpus.policies.*
+  - corpus.past_assessments.*
+  - artifact.asset_inventory
+can_write:
+  - artifact.policy_gap_findings
+  - artifact.control_mapping
+cannot:
+  - execute:ticket.create
+  - execute:report.publish
+  - read:mirror.*                # not its job; least privilege

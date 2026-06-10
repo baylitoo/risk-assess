@@ -1,0 +1,8 @@
+{
+  "synced_at": "2026-06-09T22:00:00Z",
+  "sources": {
+    "nvd": "sample fixture",
+    "kev": "sample fixture",
+    "epss": "sample fixture"
+  }
+}

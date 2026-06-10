@@ -1,11 +1,12 @@
 agent: intake_worker
 can_read:
-  - document.raw.*
+  - artifact.document_corpus
 can_write:
   - artifact.document_corpus
+  - artifact.inventory_extraction
   - artifact.asset_inventory
   - artifact.intake_assessment
 cannot:
-  - read:mirror.*
+  - read:document.raw.*
   - execute:ticket.create
   - execute:report.publish

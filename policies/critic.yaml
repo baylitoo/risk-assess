@@ -4,6 +4,7 @@ can_read:
 can_write:
   - artifact.critique
 cannot:
+  - read:artifact.document_corpus
   - read:document.raw.*
   - write:artifact.risk_register   # the critic challenges; it never edits the register itself
   - execute:ticket.create

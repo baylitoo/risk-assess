@@ -5,6 +5,7 @@ can_read:
   - corpus.policies.*
   - corpus.past_assessments.*
   - artifact.asset_inventory
+  - artifact.document_corpus
 can_write:
   - artifact.policy_gap_findings
   - artifact.control_mapping

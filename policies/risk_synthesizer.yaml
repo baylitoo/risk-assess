@@ -4,6 +4,7 @@ can_read:
 can_write:
   - artifact.risk_register
 cannot:
+  - read:artifact.document_corpus
   - read:document.raw.*          # injection firewall: synthesis sees artifacts, not documents
   - read:mirror.*
   - execute:ticket.create

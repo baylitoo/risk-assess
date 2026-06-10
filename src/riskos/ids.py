@@ -32,6 +32,8 @@ KIND_PREFIX: dict[str, str] = {
     "threat_scenario": "thr",
     "finding": "fnd",
     "evidence": "evd",
+    "document": "doc",
+    "chunk": "chk",
     "assumption": "asn",
     "artifact": "art",
     "span": "spn",

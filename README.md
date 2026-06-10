@@ -35,11 +35,11 @@ CLI.
 
 ```mermaid
 flowchart TB
-    Dossier["Assessment dossier<br/>future ingestion pipeline"]
+    Dossier["Text / Markdown dossier"]
 
     subgraph Workflow["Assessment workflow"]
         direction TB
-        Intake["1. Intake<br/>Inventory + completeness"]
+        Intake["1. Intake<br/>Normalize + completeness"]
         Scope["2. Scoping<br/>Modules + depth + schedule"]
         Gate1{{"Human gate"}}
         Evidence["3. Evidence<br/>Specialist artifacts"]
@@ -86,7 +86,7 @@ flowchart TB
     classDef runtime fill:#ddf4ff,stroke:#0969da,color:#0550ae;
     classDef service fill:#dafbe1,stroke:#1a7f37,color:#116329;
 
-    class Dossier,Publish future;
+    class Publish future;
     class Gate1,Gate2 gate;
     class Harness,Policy,Workspace,Audit runtime;
     class IDs,Scorer,Critic,Evals,Riskctl service;
@@ -159,7 +159,7 @@ flowchart TB
 |---|---|
 | Identity | Stable deterministic IDs for systems, components, findings, evidence, artifacts, and workflow objects |
 | Schemas | Typed entities, inventories, evidence, findings, scopes, and risk registers |
-| Intake | Rule-coded completeness checks with entity-linked missing evidence requirements |
+| Intake | Text/Markdown normalization, deterministic classification and chunking, plus rule-coded completeness checks |
 | Scoping | DORA, privacy, GenAI, and adversary module activation; fast-track/full-depth selection |
 | Workflow | Ordered assessment phases, serializable state, and mandatory human gates |
 | Runtime | Policy-enforced artifact access, immutable versions, path validation, and append-only audit events |
@@ -190,6 +190,12 @@ Run the checked-in regression corpus and enforce release thresholds:
 
 ```powershell
 riskeval evals/corpus --thresholds config/eval_thresholds.yaml
+```
+
+Normalize a local text/Markdown dossier into a typed document corpus:
+
+```powershell
+riskingest path/to/dossier --assessment-id asm-example --output corpus.json
 ```
 
 Use another local mirror by setting `RISKOS_MIRROR_DIR`:
@@ -259,7 +265,7 @@ src/riskos/
   cli/                  riskctl vulnerability intelligence CLI
   critic/               Deterministic missing-risk coverage checks
   evals/                Quality metrics, corpus runner, and release gates
-  intake/               Intake completeness gate
+  intake/               Document normalization and intake completeness gate
   policy/               Policy-as-code engine
   runtime/              Agent harness, artifact workspace, audit log
   schemas/              Typed entities and workflow artifacts
@@ -277,6 +283,8 @@ ROADMAP.md              Target architecture and delivery roadmap
   side effects.
 - The synthesizer and scope engine consume structured artifacts, not raw
   untrusted documents.
+- Normalized document chunks remain untrusted and are denied to the
+  synthesizer, critic, and report writer by policy.
 - Artifact versions are immutable and scoped to one assessment workspace.
 - Artifact path segments are validated to prevent workspace traversal.
 - Allowed and denied runtime operations are both auditable.
@@ -291,14 +299,14 @@ WORM audit storage, secret management, and in-region model serving.
 
 - Typed artifacts and stable entity IDs
 - Minimal policy-as-code and enforcement harness
-- Deterministic intake completeness and assessment scoping
+- Text/Markdown intake normalization, completeness, and assessment scoping
 - Human-gated workflow state machine
 - Deterministic scoring, confidence, coverage checks, and eval metrics
 - Local `riskctl` vulnerability intelligence CLI
 
 **Next major work**
 
-- Real document and diagram ingestion into asset/data-flow inventories
+- Add PDF/DOCX/diagram adapters and extract asset/data-flow inventories
 - Grow the golden assessment corpus and add phase-level extraction evals
 - Provider-abstracted LLM gateway and bounded model worker loop
 - Phase 1 analyst workflow and reviewer label capture

@@ -37,3 +37,5 @@ def test_empty_natural_key_rejected():
 def test_kind_roundtrip():
     assert kind_of(stable_id("finding", "x")) == "finding"
     assert kind_of(new_id("evidence")) == "evidence"
+    assert kind_of(stable_id("document", "assessment", "sats.md")) == "document"
+    assert kind_of(stable_id("chunk", "document", "0")) == "chunk"

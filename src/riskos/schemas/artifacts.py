@@ -96,6 +96,57 @@ class Citation(BaseModel):
     locator: str = ""               # page/section/line when applicable
 
 
+class DocumentType(StrEnum):
+    SATS = "sats"
+    ARCHITECTURE = "architecture"
+    NETWORK = "network"
+    TECHNICAL_SPEC = "technical_spec"
+    POLICY = "policy"
+    PAST_ASSESSMENT = "past_assessment"
+    OTHER = "other"
+
+
+class DocumentRecord(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    document_id: str
+    source_path: str
+    filename: str
+    media_type: str
+    document_type: DocumentType
+    sha256: str
+    size_bytes: int = Field(ge=0)
+    chunk_ids: list[str] = Field(default_factory=list)
+
+
+class DocumentChunk(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chunk_id: str
+    document_id: str
+    ordinal: int = Field(ge=0)
+    heading: str = ""
+    text: str
+    sha256: str
+
+
+class IngestionIssue(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source_path: str
+    code: str
+    message: str
+
+
+class DocumentCorpus(Artifact):
+    """Normalized document manifest and chunks for downstream extraction."""
+
+    artifact_type: str = "document_corpus"
+    documents: list[DocumentRecord] = Field(default_factory=list)
+    chunks: list[DocumentChunk] = Field(default_factory=list)
+    issues: list[IngestionIssue] = Field(default_factory=list)
+
+
 class FindingCategory(StrEnum):
     VULNERABILITY = "vulnerability"
     ACCESS_MANAGEMENT = "access_management"

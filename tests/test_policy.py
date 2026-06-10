@@ -66,3 +66,12 @@ def test_scope_engine_is_structured_artifacts_only(engine):
     assert engine.check("scope_engine", "read", "artifact.asset_inventory")
     assert engine.check("scope_engine", "write", "artifact.assessment_scope")
     assert not engine.check("scope_engine", "read", "document.raw.sats")
+
+
+def test_document_corpus_stays_behind_injection_firewall(engine):
+    assert engine.check("intake_worker", "write", "artifact.document_corpus")
+    assert engine.check("internal_docs_analyst", "read", "artifact.document_corpus")
+    for agent in ("risk_synthesizer", "critic", "report_writer"):
+        decision = engine.check(agent, "read", "artifact.document_corpus")
+        assert not decision.allowed
+        assert decision.rule == "cannot: read:artifact.document_corpus"

@@ -1,6 +1,7 @@
 import pytest
 
 from riskos.ids import stable_id
+from riskos.intake import ingest_directory
 from riskos.policy import PolicyEngine, PolicyError
 from riskos.runtime import AgentHarness, ArtifactWorkspace, JsonlAuditLog, WorkspaceError
 from riskos.schemas.artifacts import RiskRegister, VulnerabilityFindings
@@ -137,3 +138,19 @@ def test_scope_engine_can_persist_scope_but_cannot_read_raw_documents(
         harness.authorize("read", "document.raw.sats")
 
     assert [event.outcome for event in audit.read_all()] == ["allowed", "denied"]
+
+
+def test_document_corpus_versions_flow_through_policy_harness(runtime, tmp_path):
+    assessment_id, workspace, audit, policy, _ = runtime
+    (tmp_path / "sats.md").write_text("# SATS\n\nSecurity assessment.", encoding="utf-8")
+    first = ingest_directory(tmp_path, assessment_id)
+    second = ingest_directory(tmp_path, assessment_id, version=2)
+
+    intake = AgentHarness("intake_worker", policy, workspace, audit)
+    intake.write_artifact(first)
+    intake.write_artifact(second)
+    latest = AgentHarness("internal_docs_analyst", policy, workspace, audit).read_artifact(
+        "document_corpus", first.artifact_id, type(first)
+    )
+
+    assert latest.version == 2

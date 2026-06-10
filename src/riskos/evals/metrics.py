@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from riskos.schemas.artifacts import RiskFinding
+from riskos.schemas.artifacts import FindingCategory, RiskFinding
 from riskos.scoring.scorer import RiskScorer
 
 _HIGH_BANDS = {"high", "very_high", "critical"}
@@ -36,12 +36,6 @@ class EvalReport:
     unsupported_critical_ids: list[str] = field(default_factory=list)
 
 
-def _matches(golden: RiskFinding, produced: RiskFinding) -> bool:
-    if golden.category != produced.category:
-        return False
-    return bool(set(golden.affected_asset_ids) & set(produced.affected_asset_ids))
-
-
 def evaluate_register(
     golden: list[RiskFinding],
     produced: list[RiskFinding],
@@ -49,16 +43,33 @@ def evaluate_register(
     matched_pairs: list[tuple[RiskFinding, RiskFinding]] = []
     missed: list[str] = []
     claimed_produced: set[str] = set()
+    candidates: dict[tuple[FindingCategory, str], list[int]] = {}
+    cursors: dict[tuple[FindingCategory, str], int] = {}
+    for index, finding in enumerate(produced):
+        for asset_id in set(finding.affected_asset_ids):
+            candidates.setdefault((finding.category, asset_id), []).append(index)
 
     for g in golden:
-        match = next(
-            (p for p in produced
-             if p.finding_id not in claimed_produced and _matches(g, p)),
-            None,
-        )
-        if match is None:
+        match_index = None
+        for asset_id in set(g.affected_asset_ids):
+            key = (g.category, asset_id)
+            indexes = candidates.get(key, ())
+            cursor = cursors.get(key, 0)
+            while (
+                cursor < len(indexes)
+                and produced[indexes[cursor]].finding_id in claimed_produced
+            ):
+                cursor += 1
+            cursors[key] = cursor
+            if cursor < len(indexes):
+                candidate = indexes[cursor]
+                if match_index is None or candidate < match_index:
+                    match_index = candidate
+
+        if match_index is None:
             missed.append(g.finding_id)
         else:
+            match = produced[match_index]
             claimed_produced.add(match.finding_id)
             matched_pairs.append((g, match))
 

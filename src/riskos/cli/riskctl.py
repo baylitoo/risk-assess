@@ -88,31 +88,45 @@ def get_epss(cve_id: str) -> dict:
 
 def triage(cve_ids: list[str]) -> dict:
     """KEV > EPSS > CVSS priority heuristic, one combined record per CVE."""
+    mirror = _mirror_root()
+    kev = _read_json(mirror / "kev.json") or {"vulnerabilities": []}
+    kev_ids = {
+        entry.get("cveID")
+        for entry in kev.get("vulnerabilities", [])
+        if entry.get("cveID")
+    }
+    epss = _read_json(mirror / "epss.json") or {}
+    records = {
+        cve_id: _read_json(mirror / "nvd" / f"{cve_id}.json")
+        for cve_id in dict.fromkeys(cve_ids)
+    }
+
     results = []
     for cve_id in cve_ids:
-        nvd = get_cve(cve_id)
-        kev = check_kev(cve_id)
-        epss = get_epss(cve_id)
+        record = records[cve_id]
+        in_mirror = record is not None
+        kev_listed = cve_id in kev_ids
+        epss_entry = epss.get(cve_id)
         cvss = None
-        if nvd["found"]:
-            cvss = nvd["record"].get("cvss_v3")
-        epss_score = epss.get("epss") if epss.get("found") else None
+        if record is not None:
+            cvss = record.get("cvss_v3")
+        epss_score = epss_entry.get("epss") if epss_entry is not None else None
 
-        if kev["listed"]:
+        if kev_listed:
             priority = "P1_actively_exploited"
         elif epss_score is not None and epss_score >= 0.1:
             priority = "P2_likely_exploited"
         elif cvss is not None and cvss >= 9.0:
             priority = "P3_critical_severity"
-        elif not nvd["found"]:
+        elif not in_mirror:
             priority = "P4_unknown_data_gap"
         else:
             priority = "P5_routine"
 
         results.append({
             "cve_id": cve_id,
-            "in_mirror": nvd["found"],
-            "kev_listed": kev["listed"],
+            "in_mirror": in_mirror,
+            "kev_listed": kev_listed,
             "epss": epss_score,
             "cvss_v3": cvss,
             "priority": priority,

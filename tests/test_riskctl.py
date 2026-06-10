@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+from riskos.cli import riskctl
 from riskos.cli.riskctl import main
 from tests.conftest import REPO_ROOT
 
@@ -60,3 +61,35 @@ def test_triage_batch_limit(capsys):
     err = capsys.readouterr().err
     assert code == 2
     assert "max 50" in json.loads(err)["error"]
+
+
+def test_triage_loads_shared_mirror_files_once(monkeypatch):
+    reads: list[str] = []
+    original = riskctl._read_json
+
+    def tracked_read(path):
+        reads.append(path.name)
+        return original(path)
+
+    monkeypatch.setattr(riskctl, "_read_json", tracked_read)
+
+    riskctl.triage(["CVE-2026-0001", "CVE-2026-0002", "CVE-1999-9999"])
+
+    assert reads.count("kev.json") == 1
+    assert reads.count("epss.json") == 1
+
+
+def test_triage_loads_duplicate_cve_record_once(monkeypatch):
+    reads: list[str] = []
+    original = riskctl._read_json
+
+    def tracked_read(path):
+        reads.append(path.name)
+        return original(path)
+
+    monkeypatch.setattr(riskctl, "_read_json", tracked_read)
+
+    result = riskctl.triage(["CVE-2026-0001", "CVE-2026-0001"])
+
+    assert result["count"] == 2
+    assert reads.count("CVE-2026-0001.json") == 1

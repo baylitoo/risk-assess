@@ -48,29 +48,30 @@ class ArtifactWorkspace:
         version: int | None = None,
     ) -> ArtifactT:
         if version is None:
-            versions = self._versions(artifact_type, artifact_id)
-            if not versions:
+            version = self._latest_version(artifact_type, artifact_id)
+            if version is None:
                 raise WorkspaceError(
                     f"artifact not found: {artifact_type}/{artifact_id}"
                 )
-            version = versions[-1]
 
         path = self._path(artifact_type, artifact_id, version)
         if not path.exists():
             raise WorkspaceError(f"artifact version not found: {path}")
         return model.model_validate_json(path.read_text(encoding="utf-8"))
 
-    def _versions(self, artifact_type: str, artifact_id: str) -> list[int]:
+    def _latest_version(self, artifact_type: str, artifact_id: str) -> int | None:
         artifact_type = _safe_segment("artifact_type", artifact_type)
         artifact_id = _safe_segment("artifact_id", artifact_id)
         directory = self.root / self.assessment_id / "artifacts" / artifact_type / artifact_id
-        versions = []
+        latest = None
         for path in directory.glob("v*.json"):
             try:
-                versions.append(int(path.stem.removeprefix("v")))
+                version = int(path.stem.removeprefix("v"))
             except ValueError:
                 continue
-        return sorted(versions)
+            if latest is None or version > latest:
+                latest = version
+        return latest
 
     def _path(self, artifact_type: str, artifact_id: str, version: int) -> Path:
         artifact_type = _safe_segment("artifact_type", artifact_type)

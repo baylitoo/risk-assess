@@ -50,11 +50,12 @@ class JsonlAuditLog:
     def read_all(self) -> list[AuditEvent]:
         if not self.path.exists():
             return []
-        return [
-            AuditEvent.model_validate(json.loads(line))
-            for line in self.path.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        ]
+        with self.path.open(encoding="utf-8") as handle:
+            return [
+                AuditEvent.model_validate(json.loads(line))
+                for line in handle
+                if line.strip()
+            ]
 
 
 class AgentHarness:

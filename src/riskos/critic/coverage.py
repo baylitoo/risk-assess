@@ -13,7 +13,7 @@ categories that must cover at least one of those entities.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Callable
 
 from riskos.schemas.artifacts import AssetInventory, FindingCategory, RiskFinding
@@ -114,13 +114,18 @@ def check_coverage(
     An entity is covered when at least one finding has a matching category
     AND references the entity in ``affected_asset_ids``.
     """
+    covered_assets: dict[FindingCategory, set[str]] = {}
+    for finding in findings:
+        covered_assets.setdefault(finding.category, set()).update(
+            finding.affected_asset_ids
+        )
+
     gaps: list[CoverageGap] = []
     for rule in rules:
         for entity_id in rule.trigger(inventory):
             covered = any(
-                f.category in rule.expected_categories
-                and entity_id in f.affected_asset_ids
-                for f in findings
+                entity_id in covered_assets.get(category, ())
+                for category in rule.expected_categories
             )
             if not covered:
                 gaps.append(

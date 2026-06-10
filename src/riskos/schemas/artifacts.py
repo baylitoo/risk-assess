@@ -20,6 +20,7 @@ from riskos.schemas.entities import (
     System,
     ThirdParty,
 )
+from riskos.schemas.generation import InventoryGeneration
 
 
 def _utcnow() -> datetime:
@@ -205,7 +206,16 @@ class AssetInventory(Artifact):
     data_flows: list[DataFlow] = Field(default_factory=list)
     third_parties: list[ThirdParty] = Field(default_factory=list)
     controls: list[Control] = Field(default_factory=list)
+    evidence: list[Evidence] = Field(default_factory=list)
     missing_evidence: list[str] = Field(default_factory=list)  # intake bounce list
+
+
+class InventoryExtraction(Artifact):
+    """Raw structured-generation output, preserved before materialization."""
+
+    artifact_type: str = "inventory_extraction"
+    corpus_artifact_id: str
+    generation: InventoryGeneration
 
 
 class AssessmentModule(StrEnum):

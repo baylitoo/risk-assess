@@ -159,7 +159,7 @@ flowchart TB
 |---|---|
 | Identity | Stable deterministic IDs for systems, components, findings, evidence, artifacts, and workflow objects |
 | Schemas | Typed entities, inventories, evidence, findings, scopes, and risk registers |
-| Intake | Text/Markdown normalization, deterministic classification and chunking, plus rule-coded completeness checks |
+| Intake | Text/Markdown normalization, strict structured inventory generation, validated materialization, and completeness checks |
 | Scoping | DORA, privacy, GenAI, and adversary module activation; fast-track/full-depth selection |
 | Workflow | Ordered assessment phases, serializable state, and mandatory human gates |
 | Runtime | Policy-enforced artifact access, immutable versions, path validation, and append-only audit events |
@@ -196,6 +196,17 @@ Normalize a local text/Markdown dossier into a typed document corpus:
 
 ```powershell
 riskingest path/to/dossier --assessment-id asm-example --output corpus.json
+```
+
+Export the provider-independent structured-generation schema, then validate and
+materialize generated inventory proposals:
+
+```powershell
+riskinventory --schema > inventory-generation-schema.json
+riskinventory corpus.json generation.json `
+  --model-id provider-model-v1 `
+  --extraction-output inventory-extraction.json `
+  --inventory-output asset-inventory.json
 ```
 
 Use another local mirror by setting `RISKOS_MIRROR_DIR`:
@@ -265,7 +276,7 @@ src/riskos/
   cli/                  riskctl vulnerability intelligence CLI
   critic/               Deterministic missing-risk coverage checks
   evals/                Quality metrics, corpus runner, and release gates
-  intake/               Document normalization and intake completeness gate
+  intake/               Document normalization, structured inventory materialization, and completeness
   policy/               Policy-as-code engine
   runtime/              Agent harness, artifact workspace, audit log
   schemas/              Typed entities and workflow artifacts
@@ -285,6 +296,8 @@ ROADMAP.md              Target architecture and delivery roadmap
   untrusted documents.
 - Normalized document chunks remain untrusted and are denied to the
   synthesizer, critic, and report writer by policy.
+- Extractors can only emit strict `InventoryGeneration` proposals; deterministic
+  code validates references and mints canonical inventory IDs.
 - Artifact versions are immutable and scoped to one assessment workspace.
 - Artifact path segments are validated to prevent workspace traversal.
 - Allowed and denied runtime operations are both auditable.
@@ -300,13 +313,15 @@ WORM audit storage, secret management, and in-region model serving.
 - Typed artifacts and stable entity IDs
 - Minimal policy-as-code and enforcement harness
 - Text/Markdown intake normalization, completeness, and assessment scoping
+- Strict Pydantic structured-generation contract for inventory extraction
 - Human-gated workflow state machine
 - Deterministic scoring, confidence, coverage checks, and eval metrics
 - Local `riskctl` vulnerability intelligence CLI
 
 **Next major work**
 
-- Add PDF/DOCX/diagram adapters and extract asset/data-flow inventories
+- Build provider-backed structured inventory extraction and phase-level inventory evals
+- Add PDF/DOCX/diagram adapters behind the existing corpus contract
 - Grow the golden assessment corpus and add phase-level extraction evals
 - Provider-abstracted LLM gateway and bounded model worker loop
 - Phase 1 analyst workflow and reviewer label capture

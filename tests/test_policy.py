@@ -29,7 +29,7 @@ def test_synthesizer_injection_firewall(engine):
 
 
 def test_no_agent_can_publish(engine):
-    for agent in ("intake_worker", "scope_engine", "vuln_operator",
+    for agent in ("intake_worker", "inventory_extractor", "scope_engine", "vuln_operator",
                   "internal_docs_analyst", "risk_synthesizer", "critic",
                   "report_writer"):
         assert not engine.check(agent, "execute", "report.publish")
@@ -75,3 +75,10 @@ def test_document_corpus_stays_behind_injection_firewall(engine):
         decision = engine.check(agent, "read", "artifact.document_corpus")
         assert not decision.allowed
         assert decision.rule == "cannot: read:artifact.document_corpus"
+
+
+def test_inventory_extractor_can_only_emit_structured_proposals(engine):
+    assert engine.check("inventory_extractor", "read", "artifact.document_corpus")
+    assert engine.check("inventory_extractor", "write", "artifact.inventory_extraction")
+    assert not engine.check("inventory_extractor", "write", "artifact.asset_inventory")
+    assert not engine.check("inventory_extractor", "read", "document.raw.sats")

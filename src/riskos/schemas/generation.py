@@ -1,0 +1,89 @@
+"""Strict structured-generation contracts for inventory extraction."""
+
+from __future__ import annotations
+
+from typing import Annotated, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from riskos.schemas.entities import Criticality, DataClassification, Exposure
+
+NonEmptyStr = Annotated[str, Field(min_length=1)]
+
+
+class GenerationModel(BaseModel):
+    """Base for all model-generated structures: serializable and extra-forbid."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+
+class ProposedEntity(GenerationModel):
+    key: NonEmptyStr
+    name: NonEmptyStr
+    description: str = ""
+    source_chunk_ids: list[NonEmptyStr] = Field(min_length=1)
+    confidence: float = Field(ge=0.0, le=1.0)
+
+
+class ProposedSystem(ProposedEntity):
+    criticality: Criticality = Criticality.MEDIUM
+    business_owner: str = ""
+    supports_critical_function: bool = False
+
+
+class ProposedComponent(ProposedEntity):
+    system_key: NonEmptyStr
+    exposure: Exposure = Exposure.INTERNAL
+    technology: str = ""
+    cpe_candidates: list[NonEmptyStr] = Field(default_factory=list)
+    is_admin_interface: bool = False
+    is_genai: bool = False
+
+
+class ProposedDataAsset(ProposedEntity):
+    system_key: NonEmptyStr
+    classification: DataClassification = DataClassification.INTERNAL
+    contains_pii: bool = False
+
+
+class ProposedDataFlow(ProposedEntity):
+    source_component_key: NonEmptyStr
+    target_component_key: NonEmptyStr
+    data_asset_keys: list[NonEmptyStr] = Field(default_factory=list)
+    protocol: str = ""
+    encrypted_in_transit: bool | None = None
+    crosses_trust_boundary: bool = False
+
+
+class ProposedThirdParty(ProposedEntity):
+    service: str = ""
+    data_asset_keys: list[NonEmptyStr] = Field(default_factory=list)
+    outsourcing_classification: str = ""
+    has_exit_plan: bool | None = None
+    concentration_risk: bool = False
+
+
+class ProposedControl(ProposedEntity):
+    taxonomy_ref: str = ""
+    framework_refs: dict[str, str] = Field(default_factory=dict)
+    implemented: bool | None = None
+    strength: str = ""
+
+
+class UnresolvedMention(GenerationModel):
+    text: NonEmptyStr
+    reason: NonEmptyStr
+    source_chunk_ids: list[NonEmptyStr] = Field(min_length=1)
+
+
+class InventoryGeneration(GenerationModel):
+    """Provider-independent structured output expected from every extractor."""
+
+    schema_version: Literal["1"] = "1"
+    systems: list[ProposedSystem] = Field(default_factory=list)
+    components: list[ProposedComponent] = Field(default_factory=list)
+    data_assets: list[ProposedDataAsset] = Field(default_factory=list)
+    data_flows: list[ProposedDataFlow] = Field(default_factory=list)
+    third_parties: list[ProposedThirdParty] = Field(default_factory=list)
+    controls: list[ProposedControl] = Field(default_factory=list)
+    unresolved_mentions: list[UnresolvedMention] = Field(default_factory=list)

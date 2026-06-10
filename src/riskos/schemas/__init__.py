@@ -24,11 +24,24 @@ from riskos.schemas.artifacts import (
     FindingStatus,
     IntakeAssessment,
     IngestionIssue,
+    InventoryExtraction,
     MissingEvidenceRequirement,
     RiskFinding,
     RiskRegister,
     ScopeDecision,
     VulnerabilityFindings,
+)
+from riskos.schemas.generation import (
+    GenerationModel,
+    InventoryGeneration,
+    ProposedComponent,
+    ProposedControl,
+    ProposedDataAsset,
+    ProposedDataFlow,
+    ProposedEntity,
+    ProposedSystem,
+    ProposedThirdParty,
+    UnresolvedMention,
 )
 
 __all__ = [
@@ -53,6 +66,8 @@ __all__ = [
     "FindingStatus",
     "IntakeAssessment",
     "IngestionIssue",
+    "InventoryExtraction",
+    "InventoryGeneration",
     "MissingEvidenceRequirement",
     "RiskFinding",
     "RiskRegister",
@@ -60,4 +75,13 @@ __all__ = [
     "System",
     "ThirdParty",
     "VulnerabilityFindings",
+    "GenerationModel",
+    "ProposedComponent",
+    "ProposedControl",
+    "ProposedDataAsset",
+    "ProposedDataFlow",
+    "ProposedEntity",
+    "ProposedSystem",
+    "ProposedThirdParty",
+    "UnresolvedMention",
 ]

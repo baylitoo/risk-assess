@@ -1,0 +1,11 @@
+agent: inventory_extractor
+can_read:
+  - artifact.document_corpus
+can_write:
+  - artifact.inventory_extraction
+cannot:
+  - read:document.raw.*
+  - read:mirror.*
+  - write:artifact.asset_inventory
+  - execute:ticket.create
+  - execute:report.publish

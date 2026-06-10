@@ -17,6 +17,7 @@ dev = [
 riskctl = "riskos.cli.riskctl:main"
 riskeval = "riskos.cli.riskeval:main"
 riskingest = "riskos.cli.riskingest:main"
+riskinventory = "riskos.cli.riskinventory:main"
 
 [build-system]
 requires = ["setuptools>=68"]

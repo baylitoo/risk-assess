@@ -16,8 +16,12 @@ dev = [
 [project.scripts]
 riskctl = "riskos.cli.riskctl:main"
 riskeval = "riskos.cli.riskeval:main"
+riskfindingeval = "riskos.cli.riskfindingeval:main"
 riskingest = "riskos.cli.riskingest:main"
 riskinventory = "riskos.cli.riskinventory:main"
+riskintake = "riskos.cli.riskintake:main"
+riskreview = "riskos.cli.riskreview:main"
+riskpublish = "riskos.cli.riskpublish:main"
 
 [build-system]
 requires = ["setuptools>=68"]

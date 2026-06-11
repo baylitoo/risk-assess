@@ -1,0 +1,146 @@
+{
+  "schema_version": "1",
+  "case_id": "core-banking-reg-001",
+  "split": "regression",
+  "description": "Core banking system — expected threat findings for regression gate.",
+  "golden_findings": [
+    {
+      "finding_id": "fnd-reg-001",
+      "title": "Unauthenticated transaction API exposed to internet",
+      "category": "abuse_prevention",
+      "scenario": "An external attacker exploits missing rate-limiting to enumerate accounts via the transaction API.",
+      "affected_asset_ids": ["cmp-1899e64ff699"],
+      "factors": {
+        "exposure": "internet_facing",
+        "exploitability": "practical",
+        "threat_activity": "high",
+        "impact": "severe",
+        "control_strength": "absent"
+      },
+      "inherent_score": 20,
+      "residual_score": 20,
+      "band": "critical"
+    },
+    {
+      "finding_id": "fnd-reg-002",
+      "title": "Account records exposed without encryption",
+      "category": "privacy",
+      "scenario": "Customer account PII stored without encryption at rest is exposed in a DB breach.",
+      "affected_asset_ids": ["dat-b23aca318b87"],
+      "factors": {
+        "exposure": "restricted",
+        "exploitability": "difficult",
+        "threat_activity": "moderate",
+        "impact": "severe",
+        "control_strength": "weak"
+      },
+      "inherent_score": 15,
+      "residual_score": 12,
+      "band": "high"
+    },
+    {
+      "finding_id": "fnd-reg-003",
+      "title": "SWIFT network provider without exit plan",
+      "category": "third_party",
+      "scenario": "Critical dependency on SWIFT network without a documented exit strategy creates concentration risk.",
+      "affected_asset_ids": ["thp-b79daefe09f0"],
+      "factors": {
+        "exposure": "restricted",
+        "exploitability": "difficult",
+        "threat_activity": "low",
+        "impact": "major",
+        "control_strength": "moderate"
+      },
+      "inherent_score": 8,
+      "residual_score": 6,
+      "band": "medium"
+    },
+    {
+      "finding_id": "fnd-reg-004",
+      "title": "Admin portal accessible without MFA",
+      "category": "access_management",
+      "scenario": "The core-banking admin portal allows password-only authentication, enabling privilege escalation.",
+      "affected_asset_ids": ["cmp-7f5ac0680890"],
+      "factors": {
+        "exposure": "internal",
+        "exploitability": "practical",
+        "threat_activity": "moderate",
+        "impact": "severe",
+        "control_strength": "weak"
+      },
+      "inherent_score": 15,
+      "residual_score": 12,
+      "band": "high"
+    }
+  ],
+  "produced_findings": [
+    {
+      "finding_id": "fnd-reg-001",
+      "title": "Unauthenticated transaction API exposed to internet",
+      "category": "abuse_prevention",
+      "scenario": "An external attacker exploits missing rate-limiting to enumerate accounts via the transaction API.",
+      "affected_asset_ids": ["cmp-1899e64ff699"],
+      "factors": {
+        "exposure": "internet_facing",
+        "exploitability": "practical",
+        "threat_activity": "high",
+        "impact": "severe",
+        "control_strength": "absent"
+      },
+      "inherent_score": 20,
+      "residual_score": 20,
+      "band": "critical"
+    },
+    {
+      "finding_id": "fnd-reg-002",
+      "title": "Account records exposed without encryption",
+      "category": "privacy",
+      "scenario": "Customer account PII stored without encryption at rest is exposed in a DB breach.",
+      "affected_asset_ids": ["dat-b23aca318b87"],
+      "factors": {
+        "exposure": "restricted",
+        "exploitability": "difficult",
+        "threat_activity": "moderate",
+        "impact": "severe",
+        "control_strength": "weak"
+      },
+      "inherent_score": 15,
+      "residual_score": 12,
+      "band": "high"
+    },
+    {
+      "finding_id": "fnd-reg-003",
+      "title": "SWIFT network provider without exit plan",
+      "category": "third_party",
+      "scenario": "Critical dependency on SWIFT network without a documented exit strategy creates concentration risk.",
+      "affected_asset_ids": ["thp-b79daefe09f0"],
+      "factors": {
+        "exposure": "restricted",
+        "exploitability": "difficult",
+        "threat_activity": "low",
+        "impact": "major",
+        "control_strength": "moderate"
+      },
+      "inherent_score": 8,
+      "residual_score": 6,
+      "band": "medium"
+    },
+    {
+      "finding_id": "fnd-reg-004",
+      "title": "Admin portal accessible without MFA",
+      "category": "access_management",
+      "scenario": "The core-banking admin portal allows password-only authentication.",
+      "affected_asset_ids": ["cmp-7f5ac0680890"],
+      "factors": {
+        "exposure": "internal",
+        "exploitability": "practical",
+        "threat_activity": "moderate",
+        "impact": "severe",
+        "control_strength": "weak"
+      },
+      "inherent_score": 15,
+      "residual_score": 12,
+      "band": "high"
+    }
+  ]
+}

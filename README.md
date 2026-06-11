@@ -31,7 +31,8 @@ See [ROADMAP.md](ROADMAP.md) for the full architecture and delivery plan.
 The implemented foundation covers typed inventory and finding models,
 deterministic intake and scoping, policy-enforced artifact access, risk scoring,
 coverage challenge, evaluation metrics, and a local vulnerability intelligence
-CLI.
+CLI. Phase 0 intake now also has a policy-enforced worker and an end-to-end
+CLI for turning a normalized document corpus into validated inventory artifacts.
 
 ```mermaid
 flowchart TB
@@ -159,7 +160,7 @@ flowchart TB
 |---|---|
 | Identity | Stable deterministic IDs for systems, components, findings, evidence, artifacts, and workflow objects |
 | Schemas | Typed entities, inventories, evidence, findings, scopes, and risk registers |
-| Intake | Text/Markdown normalization, strict structured inventory generation, validated materialization, and completeness checks |
+| Intake | Text/Markdown normalization, strict structured inventory generation, validated materialization, completeness checks, and a Phase 0 intake worker |
 | Scoping | DORA, privacy, GenAI, and adversary module activation; fast-track/full-depth selection |
 | Workflow | Ordered assessment phases, serializable state, and mandatory human gates |
 | Runtime | Policy-enforced artifact access, immutable versions, path validation, and append-only audit events |
@@ -190,6 +191,15 @@ Run the checked-in regression corpus and enforce release thresholds:
 
 ```powershell
 riskeval evals/corpus --thresholds config/eval_thresholds.yaml
+```
+
+Run Phase 0 intake against a normalized document corpus:
+
+```powershell
+riskintake corpus.json `
+  --workspace-dir workspaces\asm-example `
+  --audit-log workspaces\audit.jsonl `
+  --policies-dir policies
 ```
 
 Normalize a local text/Markdown dossier into a typed document corpus:
@@ -314,16 +324,15 @@ WORM audit storage, secret management, and in-region generation routing.
 - Minimal policy-as-code and enforcement harness
 - Text/Markdown intake normalization, completeness, and assessment scoping
 - Strict Pydantic structured-generation contract for inventory extraction
+- Policy-enforced Phase 0 intake worker and end-to-end intake CLI
 - Human-gated workflow state machine
 - Deterministic scoring, confidence, coverage checks, and eval metrics
 - Local `riskctl` vulnerability intelligence CLI
 
 **Next major work**
 
-- Build LiteLLM-routed structured inventory extraction and phase-level inventory evals
 - Add PDF/DOCX/diagram adapters behind the existing corpus contract
 - Grow the golden assessment corpus and add phase-level extraction evals
-- LiteLLM proxy integration and bounded generation worker loop
 - Phase 1 analyst workflow and reviewer label capture
 - Durable orchestration, persistent data stores, and review console
 

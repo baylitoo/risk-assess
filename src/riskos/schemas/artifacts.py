@@ -131,6 +131,19 @@ class DocumentChunk(BaseModel):
     sha256: str
 
 
+class ImageChunk(BaseModel):
+    """Binary image content from a diagram, architecture drawing, or network map."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    chunk_id: str
+    document_id: str
+    media_type: str       # "image/png", "image/jpeg"
+    data_b64: str         # base64-encoded raw bytes, no data-URI prefix
+    sha256: str
+    size_bytes: int = Field(ge=0)
+
+
 class IngestionIssue(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -145,6 +158,7 @@ class DocumentCorpus(Artifact):
     artifact_type: str = "document_corpus"
     documents: list[DocumentRecord] = Field(default_factory=list)
     chunks: list[DocumentChunk] = Field(default_factory=list)
+    image_chunks: list[ImageChunk] = Field(default_factory=list)
     issues: list[IngestionIssue] = Field(default_factory=list)
 
 

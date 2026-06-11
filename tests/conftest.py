@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,25 @@ from riskos.schemas.artifacts import (
 from riskos.schemas.entities import Component, DataAsset, Exposure, System, ThirdParty
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line(
+        "markers",
+        "live: requires RISKOS_PROXY_URL and RISKOS_PROXY_API_KEY to be set; "
+        "skipped in standard CI runs",
+    )
+
+
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
+    if os.environ.get("RISKOS_PROXY_URL"):
+        return
+    skip_live = pytest.mark.skip(reason="RISKOS_PROXY_URL not set — live tests skipped")
+    for item in items:
+        if item.get_closest_marker("live"):
+            item.add_marker(skip_live)
 
 
 @pytest.fixture()

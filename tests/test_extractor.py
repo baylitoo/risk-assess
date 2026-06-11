@@ -119,3 +119,29 @@ def test_extractor_heading_in_chunk_tag(corpus, producer):
     user_message = gateway.calls[0].user_message
     # The corpus has a markdown heading — it should appear in the formatted chunk tag.
     assert 'heading=' in user_message
+
+
+def test_extractor_passes_image_chunks_to_request(tmp_path, producer):
+    (tmp_path / "spec.md").write_text("# Spec\n\nSystem details.", encoding="utf-8")
+    (tmp_path / "diagram.png").write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 4)
+    image_corpus = ingest_directory(tmp_path, stable_id("assessment", "img-extract"))
+
+    chunk_id = image_corpus.chunks[0].chunk_id
+    gateway = FakeStructuredGenerationGateway()
+    gateway.set_response(InventoryGeneration, _simple_generation(chunk_id))
+
+    extract_inventory(image_corpus, gateway, producer)
+
+    assert len(gateway.calls[0].images) == 1
+    assert gateway.calls[0].images[0].media_type == "image/png"
+    assert "Image count: 1" in gateway.calls[0].user_message
+
+
+def test_extractor_text_only_corpus_sends_no_images(corpus, producer):
+    gateway = FakeStructuredGenerationGateway()
+    gateway.set_response(InventoryGeneration, _simple_generation(corpus.chunks[0].chunk_id))
+
+    extract_inventory(corpus, gateway, producer)
+
+    assert gateway.calls[0].images == []
+    assert "Image count: 0" in gateway.calls[0].user_message

@@ -1,0 +1,62 @@
+"""Run finding quality eval against a golden corpus and enforce KPI gates."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+import yaml
+
+from riskos.evals.findings import (
+    FindingEvalError,
+    FindingEvalThresholds,
+    evaluate_finding_corpus,
+    load_finding_corpus,
+)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("corpus_dir", type=Path)
+    parser.add_argument(
+        "--split",
+        default="regression",
+        help="eval split to evaluate (default: regression)",
+    )
+    parser.add_argument("--thresholds", type=Path)
+    parser.add_argument("--output", type=Path)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        report = evaluate_finding_corpus(
+            load_finding_corpus(args.corpus_dir),
+            split=args.split,
+            thresholds=_load_thresholds(args.thresholds),
+        )
+    except (FindingEvalError, OSError, ValueError, yaml.YAMLError) as exc:
+        json.dump({"error": str(exc)}, sys.stderr)
+        sys.stderr.write("\n")
+        return 2
+
+    payload = report.model_dump_json(indent=2)
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(payload + "\n", encoding="utf-8")
+    sys.stdout.write(payload + "\n")
+    return 0 if report.passed else 1
+
+
+def _load_thresholds(path: Path | None) -> FindingEvalThresholds:
+    if path is None:
+        return FindingEvalThresholds()
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return FindingEvalThresholds.model_validate(data)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

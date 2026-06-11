@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import re
 from pathlib import Path
@@ -12,6 +13,7 @@ from riskos.schemas.artifacts import (
     DocumentCorpus,
     DocumentRecord,
     DocumentType,
+    ImageChunk,
     IngestionIssue,
     Producer,
 )
@@ -20,6 +22,11 @@ _SUPPORTED_MEDIA_TYPES = {
     ".md": "text/markdown",
     ".markdown": "text/markdown",
     ".txt": "text/plain",
+}
+_SUPPORTED_IMAGE_MEDIA_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
 }
 _HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 _BLANK_LINES = re.compile(r"\n\s*\n+")
@@ -55,6 +62,7 @@ def ingest_directory(
 
     documents: list[DocumentRecord] = []
     chunks: list[DocumentChunk] = []
+    image_chunks: list[ImageChunk] = []
     issues: list[IngestionIssue] = []
     for path in sorted(root.rglob("*")):
         relative = path.relative_to(root).as_posix()
@@ -70,6 +78,45 @@ def ingest_directory(
         if not path.is_file():
             continue
         suffix = path.suffix.casefold()
+        image_media_type = _SUPPORTED_IMAGE_MEDIA_TYPES.get(suffix)
+        if image_media_type is not None:
+            try:
+                raw = path.read_bytes()
+            except OSError as exc:
+                issues.append(
+                    IngestionIssue(
+                        source_path=relative,
+                        code="unreadable_document",
+                        message=str(exc),
+                    )
+                )
+                continue
+            document_id = stable_id("document", assessment_id, relative)
+            sha256 = _sha256(raw)
+            chunk_id = stable_id("image_chunk", document_id, sha256)
+            image_chunks.append(
+                ImageChunk(
+                    chunk_id=chunk_id,
+                    document_id=document_id,
+                    media_type=image_media_type,
+                    data_b64=base64.b64encode(raw).decode("ascii"),
+                    sha256=sha256,
+                    size_bytes=len(raw),
+                )
+            )
+            documents.append(
+                DocumentRecord(
+                    document_id=document_id,
+                    source_path=relative,
+                    filename=path.name,
+                    media_type=image_media_type,
+                    document_type=classify_document(relative, ""),
+                    sha256=sha256,
+                    size_bytes=len(raw),
+                    chunk_ids=[chunk_id],
+                )
+            )
+            continue
         media_type = _SUPPORTED_MEDIA_TYPES.get(suffix)
         if media_type is None:
             issues.append(
@@ -128,6 +175,7 @@ def ingest_directory(
         version=version,
         documents=documents,
         chunks=chunks,
+        image_chunks=image_chunks,
         issues=issues,
     )
 

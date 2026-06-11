@@ -68,12 +68,11 @@ class LiteLLMProxyGateway:
             GenerationGatewayError: on any failure (timeout, HTTP error,
                 invalid JSON, schema mismatch).
         """
-        body = json.dumps(
-            {
-                "request": request.model_dump(),
-                "response_schema": response_model.model_json_schema(),
-            }
-        ).encode("utf-8")
+        payload: dict = {
+            "request": request.model_dump(),
+            "response_schema": response_model.model_json_schema(),
+        }
+        body = json.dumps(payload).encode("utf-8")
 
         req = urllib.request.Request(
             url=self._config.proxy_url,

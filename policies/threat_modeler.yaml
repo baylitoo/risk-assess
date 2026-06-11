@@ -1,0 +1,12 @@
+agent: threat_modeler
+can_read:
+  - artifact.document_corpus
+  - artifact.asset_inventory
+  - artifact.assessment_scope
+can_write:
+  - artifact.risk_register
+cannot:
+  - write:artifact.asset_inventory
+  - write:artifact.document_corpus
+  - execute:ticket.create
+  - execute:report.publish

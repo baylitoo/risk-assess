@@ -1,0 +1,82 @@
+{
+  "schema_version": "1",
+  "findings": [
+    {
+      "key": "fnd-001",
+      "name": "Internet-facing API without rate limiting",
+      "description": "The public payments API has no rate-limiting control.",
+      "confidence": 0.95,
+      "category": "abuse_prevention",
+      "scenario": "An external attacker sends high-volume automated requests to bypass authentication controls.",
+      "source_chunk_ids": ["chk-abc0000001"],
+      "affected_asset_keys": ["payments-api"],
+      "threat_refs": ["STRIDE:Spoofing"],
+      "factors": {
+        "exposure": "internet_facing",
+        "exploitability": "practical",
+        "threat_activity": "high",
+        "impact": "major",
+        "control_strength": "absent"
+      },
+      "remediation": "Implement API rate limiting and anomaly detection."
+    },
+    {
+      "key": "fnd-002",
+      "name": "PII stored without encryption at rest",
+      "description": "Customer PII data assets have no encryption-at-rest control.",
+      "confidence": 0.9,
+      "category": "privacy",
+      "scenario": "A compromised database credential exposes unencrypted PII of EU customers.",
+      "source_chunk_ids": ["chk-abc0000001"],
+      "affected_asset_keys": ["customer-records"],
+      "threat_refs": ["GDPR:Art.32"],
+      "factors": {
+        "exposure": "restricted",
+        "exploitability": "difficult",
+        "threat_activity": "moderate",
+        "impact": "severe",
+        "control_strength": "weak"
+      },
+      "remediation": "Enforce AES-256 encryption for all PII data assets."
+    },
+    {
+      "key": "fnd-003",
+      "name": "Third-party payment processor without exit plan",
+      "description": "Critical dependency on payment processor lacks documented exit strategy.",
+      "confidence": 0.85,
+      "category": "third_party",
+      "scenario": "Third-party provider discontinues service with no fallback route available.",
+      "source_chunk_ids": ["chk-abc0000001"],
+      "affected_asset_keys": ["payment-processor"],
+      "threat_refs": ["DORA:Art.30"],
+      "factors": {
+        "exposure": "partner",
+        "exploitability": "theoretical",
+        "threat_activity": "low",
+        "impact": "major",
+        "control_strength": "absent"
+      },
+      "remediation": "Document and test exit strategy for payment processor dependency."
+    },
+    {
+      "key": "fnd-004",
+      "name": "GenAI fraud detection model producing biased decisions",
+      "description": "The GenAI fraud scoring model lacks bias monitoring.",
+      "confidence": 0.8,
+      "category": "genai",
+      "scenario": "GenAI model exhibits discriminatory patterns in fraud scoring for protected groups.",
+      "source_chunk_ids": ["chk-abc0000001"],
+      "affected_asset_keys": ["fraud-model"],
+      "threat_refs": ["EU-AI-Act:Art.9"],
+      "factors": {
+        "exposure": "internal",
+        "exploitability": "theoretical",
+        "threat_activity": "low",
+        "impact": "moderate",
+        "control_strength": "absent"
+      },
+      "remediation": "Implement bias monitoring and model explainability controls."
+    }
+  ],
+  "unresolved_gaps": []
+}

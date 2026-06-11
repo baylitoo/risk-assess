@@ -279,3 +279,35 @@ class RiskRegister(Artifact):
     methodology_version: str = ""
     findings: list[RiskFinding] = Field(default_factory=list)
     evidence: list[Evidence] = Field(default_factory=list)
+
+
+class CritiqueIssueType(StrEnum):
+    FALSE_SAFE = "false_safe"
+    OVER_SCOPED = "over_scoped"
+    MISSING_EVIDENCE = "missing_evidence"
+    BAND_INFLATION = "band_inflation"
+    DUPLICATE = "duplicate"
+
+
+class CritiqueVerdict(StrEnum):
+    PASS = "pass"
+    REQUIRES_REVISION = "requires_revision"
+    REJECT = "reject"
+
+
+class CritiqueItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    target_finding_id: str
+    issue_type: CritiqueIssueType
+    description: str
+    suggested_action: str = ""
+
+
+class Critique(Artifact):
+    """Critic agent output — challenge findings before publish gate."""
+
+    artifact_type: str = "critique"
+    target_register_id: str
+    items: list[CritiqueItem] = Field(default_factory=list)
+    overall_verdict: CritiqueVerdict = CritiqueVerdict.PASS

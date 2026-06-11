@@ -1,0 +1,231 @@
+# Internal Control Catalog v1
+# 20 controls covering all FindingCategory values.
+# taxonomy_ref is the audit primary key; stable IDs are derived from it at runtime.
+
+- taxonomy_ref: "CTL-NET-001"
+  name: "Network Segmentation"
+  description: "Enforce network zone boundaries and restrict lateral movement between segments."
+  framework_refs:
+    nist_csf: "PR.AC-5"
+    iso_27001: "A.13.1"
+    dora_article: "Art. 9.2"
+  applicable_categories:
+    - network
+    - vulnerability
+  strength_when_present: "strong"
+
+- taxonomy_ref: "CTL-NET-002"
+  name: "Firewall and ACL Management"
+  description: "Maintain stateful firewall rules and access control lists at all trust boundaries."
+  framework_refs:
+    nist_csf: "PR.AC-5"
+    iso_27001: "A.13.1.3"
+  applicable_categories:
+    - network
+  strength_when_present: "moderate"
+
+- taxonomy_ref: "CTL-VUL-001"
+  name: "Vulnerability Management Programme"
+  description: "Continuous scan, triage, and remediation of known vulnerabilities on all assets."
+  framework_refs:
+    nist_csf: "ID.RA-1"
+    iso_27001: "A.12.6.1"
+    dora_article: "Art. 9.4"
+    pci_dss: "Req 6.3"
+  applicable_categories:
+    - vulnerability
+  strength_when_present: "strong"
+
+- taxonomy_ref: "CTL-VUL-002"
+  name: "Patch Management"
+  description: "Apply security patches to operating systems, middleware, and applications within defined SLAs."
+  framework_refs:
+    nist_csf: "PR.IP-12"
+    iso_27001: "A.12.6.1"
+    dora_article: "Art. 9.4"
+  applicable_categories:
+    - vulnerability
+  strength_when_present: "moderate"
+
+- taxonomy_ref: "CTL-ACC-001"
+  name: "Least Privilege Enforcement"
+  description: "Restrict user and service account permissions to the minimum required for their function."
+  framework_refs:
+    nist_csf: "PR.AC-4"
+    iso_27001: "A.9.2.3"
+    dora_article: "Art. 9.4"
+    pci_dss: "Req 7.1"
+  applicable_categories:
+    - access_management
+  strength_when_present: "strong"
+
+- taxonomy_ref: "CTL-ACC-002"
+  name: "Multi-Factor Authentication"
+  description: "Require MFA for all privileged access and remote access to critical systems."
+  framework_refs:
+    nist_csf: "PR.AC-7"
+    iso_27001: "A.9.4.2"
+    dora_article: "Art. 9.2"
+  applicable_categories:
+    - access_management
+  strength_when_present: "strong"
+
+- taxonomy_ref: "CTL-ACC-003"
+  name: "Privileged Access Management"
+  description: "Manage, monitor, and audit all privileged account activity using a PAM solution."
+  framework_refs:
+    nist_csf: "PR.AC-1"
+    iso_27001: "A.9.2.6"
+  applicable_categories:
+    - access_management
+  strength_when_present: "moderate"
+
+- taxonomy_ref: "CTL-ABU-001"
+  name: "Rate Limiting and Throttling"
+  description: "Enforce API and endpoint rate limits to prevent abuse, enumeration, and denial of service."
+  framework_refs:
+    nist_csf: "PR.DS-5"
+    iso_27001: "A.13.1.1"
+  applicable_categories:
+    - abuse_prevention
+    - network
+  strength_when_present: "moderate"
+
+- taxonomy_ref: "CTL-ABU-002"
+  name: "Anti-Automation Controls"
+  description: "Deploy CAPTCHA, bot detection, and behavioural analytics to block automated abuse."
+  framework_refs:
+    nist_csf: "DE.CM-1"
+    iso_27001: "A.12.4.1"
+  applicable_categories:
+    - abuse_prevention
+  strength_when_present: "moderate"
+
+- taxonomy_ref: "CTL-PRV-001"
+  name: "Data Minimisation and Retention Policy"
+  description: "Collect only necessary personal data and enforce automated retention and deletion schedules."
+  framework_refs:
+    nist_csf: "PR.DS-3"
+    iso_27001: "A.18.1.4"
+    gdpr_article: "Art. 5.1(e)"
+  applicable_categories:
+    - privacy
+  strength_when_present: "strong"
+
+- taxonomy_ref: "CTL-PRV-002"
+  name: "Consent and Purpose Limitation Management"
+  description: "Maintain auditable consent records and ensure data is processed only for stated purposes."
+  framework_refs:
+    nist_csf: "GV.PO-01"
+    iso_27001: "A.18.1.4"
+    gdpr_article: "Art. 6"
+  applicable_categories:
+    - privacy
+    - policy_gap
+  strength_when_present: "moderate"
+
+- taxonomy_ref: "CTL-RES-001"
+  name: "Backup and Recovery Testing"
+  description: "Maintain tested, offsite backups with recovery time objectives validated quarterly."
+  framework_refs:
+    nist_csf: "RC.RP-1"
+    iso_27001: "A.12.3.1"
+    dora_article: "Art. 12.1"
+  applicable_categories:
+    - resilience
+  strength_when_present: "strong"
+
+- taxonomy_ref: "CTL-RES-002"
+  name: "Business Continuity and Disaster Recovery Plan"
+  description: "Documented and exercised BCP/DR plans covering critical ICT functions and recovery scenarios."
+  framework_refs:
+    nist_csf: "RC.RP-1"
+    iso_27001: "A.17.1"
+    dora_article: "Art. 11.1"
+  applicable_categories:
+    - resilience
+    - policy_gap
+  strength_when_present: "strong"
+
+- taxonomy_ref: "CTL-3PT-001"
+  name: "Third-Party Risk Assessment"
+  description: "Conduct pre-engagement and annual security assessments of all critical ICT third parties."
+  framework_refs:
+    nist_csf: "ID.SC-2"
+    iso_27001: "A.15.1.2"
+    dora_article: "Art. 28.2"
+  applicable_categories:
+    - third_party
+  strength_when_present: "strong"
+
+- taxonomy_ref: "CTL-3PT-002"
+  name: "Third-Party Contractual Security Requirements"
+  description: "Include mandatory security, audit rights, and exit plan clauses in all ICT supplier contracts."
+  framework_refs:
+    nist_csf: "ID.SC-3"
+    iso_27001: "A.15.1.1"
+    dora_article: "Art. 30.2"
+  applicable_categories:
+    - third_party
+    - policy_gap
+  strength_when_present: "moderate"
+
+- taxonomy_ref: "CTL-CRY-001"
+  name: "Encryption at Rest"
+  description: "Encrypt all sensitive and classified data at rest using approved cryptographic algorithms."
+  framework_refs:
+    nist_csf: "PR.DS-1"
+    iso_27001: "A.10.1.1"
+    pci_dss: "Req 3.5"
+  applicable_categories:
+    - cryptography
+    - privacy
+  strength_when_present: "strong"
+
+- taxonomy_ref: "CTL-CRY-002"
+  name: "Encryption in Transit"
+  description: "Enforce TLS 1.2+ for all data in transit; prohibit legacy protocols and weak cipher suites."
+  framework_refs:
+    nist_csf: "PR.DS-2"
+    iso_27001: "A.10.1.1"
+    pci_dss: "Req 4.2"
+  applicable_categories:
+    - cryptography
+    - network
+  strength_when_present: "strong"
+
+- taxonomy_ref: "CTL-LOG-001"
+  name: "Centralised Security Logging and SIEM"
+  description: "Aggregate security events into a SIEM with alerting on anomalous activity and defined use cases."
+  framework_refs:
+    nist_csf: "DE.CM-1"
+    iso_27001: "A.12.4.1"
+    dora_article: "Art. 10.1"
+  applicable_categories:
+    - logging_monitoring
+    - vulnerability
+  strength_when_present: "strong"
+
+- taxonomy_ref: "CTL-GEN-001"
+  name: "Generative AI Usage Policy and Guardrails"
+  description: "Define approved GenAI use cases, enforce output filtering, and prevent sensitive data leakage to LLM providers."
+  framework_refs:
+    nist_csf: "GV.PO-01"
+    iso_27001: "A.8.1.1"
+  applicable_categories:
+    - genai
+    - privacy
+    - policy_gap
+  strength_when_present: "moderate"
+
+- taxonomy_ref: "CTL-POL-001"
+  name: "Information Security Policy Framework"
+  description: "Maintain a Board-approved information security policy with annual review and staff attestation."
+  framework_refs:
+    nist_csf: "GV.PO-01"
+    iso_27001: "A.5.1.1"
+    dora_article: "Art. 5.1"
+  applicable_categories:
+    - policy_gap
+    - access_management
+  strength_when_present: "moderate"

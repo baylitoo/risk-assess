@@ -87,3 +87,32 @@ class InventoryGeneration(GenerationModel):
     third_parties: list[ProposedThirdParty] = Field(default_factory=list)
     controls: list[ProposedControl] = Field(default_factory=list)
     unresolved_mentions: list[UnresolvedMention] = Field(default_factory=list)
+
+
+class ProposedFinding(ProposedEntity):
+    """A threat scenario proposed by the threat_modeler or risk_synthesizer."""
+
+    confidence: float = Field(default=0.8, ge=0.0, le=1.0)
+    category: str  # validated against FindingCategory at runtime (avoids circular import)
+    scenario: NonEmptyStr
+    affected_asset_keys: list[str] = Field(default_factory=list)
+    threat_refs: list[str] = Field(default_factory=list)
+    factors: dict[str, str] = Field(default_factory=dict)
+    remediation: str = ""
+
+    def model_post_init(self, __context) -> None:  # noqa: ANN001
+        from riskos.schemas.artifacts import FindingCategory  # noqa: PLC0415
+        allowed = {m.value for m in FindingCategory}
+        if self.category not in allowed:
+            raise ValueError(
+                f"category {self.category!r} is not a valid FindingCategory; "
+                f"allowed: {sorted(allowed)}"
+            )
+
+
+class ThreatGeneration(GenerationModel):
+    """Structured output from the threat modeler or synthesizer gap-filler."""
+
+    schema_version: Literal["1"] = "1"
+    findings: list[ProposedFinding] = Field(default_factory=list)
+    unresolved_gaps: list[UnresolvedMention] = Field(default_factory=list)

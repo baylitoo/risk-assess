@@ -1,3 +1,6 @@
+import base64
+import hashlib
+
 from riskos.ids import stable_id
 from riskos.intake import classify_document, ingest_directory
 from riskos.schemas.artifacts import DocumentType
@@ -43,7 +46,7 @@ def test_normalized_chunks_have_stable_ids_across_line_endings(tmp_path):
 
 
 def test_unsupported_and_empty_documents_become_issues(tmp_path):
-    (tmp_path / "diagram.png").write_bytes(b"not-an-image")
+    (tmp_path / "unknown.xyz").write_bytes(b"data")
     (tmp_path / "empty.txt").write_text(" \n", encoding="utf-8")
 
     corpus = ingest_directory(tmp_path, stable_id("assessment", "issues"))
@@ -51,9 +54,59 @@ def test_unsupported_and_empty_documents_become_issues(tmp_path):
 
     assert corpus.documents == []
     assert by_path == {
-        "diagram.png": "unsupported_media_type",
+        "unknown.xyz": "unsupported_media_type",
         "empty.txt": "empty_document",
     }
+
+
+def test_png_produces_image_chunk(tmp_path):
+    raw = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
+    (tmp_path / "network_diagram.png").write_bytes(raw)
+
+    corpus = ingest_directory(tmp_path, stable_id("assessment", "png"))
+
+    assert len(corpus.image_chunks) == 1
+    assert len(corpus.documents) == 1
+    chunk = corpus.image_chunks[0]
+    assert chunk.media_type == "image/png"
+    assert chunk.size_bytes == len(raw)
+    assert chunk.sha256 == hashlib.sha256(raw).hexdigest()
+    assert base64.b64decode(chunk.data_b64) == raw
+    assert corpus.issues == []
+
+
+def test_jpg_produces_image_chunk(tmp_path):
+    raw = b"\xff\xd8\xff" + b"\x00" * 8
+    (tmp_path / "architecture.jpg").write_bytes(raw)
+
+    corpus = ingest_directory(tmp_path, stable_id("assessment", "jpg"))
+
+    assert len(corpus.image_chunks) == 1
+    assert corpus.image_chunks[0].media_type == "image/jpeg"
+
+
+def test_image_chunk_id_is_stable_and_linked_to_document(tmp_path):
+    raw = b"\x89PNG\r\n\x1a\n"
+    (tmp_path / "diagram.png").write_bytes(raw)
+
+    corpus = ingest_directory(tmp_path, stable_id("assessment", "stable-img"))
+
+    img = corpus.image_chunks[0]
+    doc = corpus.documents[0]
+    assert img.document_id == doc.document_id
+    assert img.chunk_id in doc.chunk_ids
+
+
+def test_mixed_dossier_separates_text_and_image_chunks(tmp_path):
+    (tmp_path / "spec.md").write_text("# Spec\n\nDetails.", encoding="utf-8")
+    (tmp_path / "diagram.png").write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 4)
+
+    corpus = ingest_directory(tmp_path, stable_id("assessment", "mixed"))
+
+    assert len(corpus.chunks) == 1
+    assert len(corpus.image_chunks) == 1
+    assert len(corpus.documents) == 2
+    assert corpus.issues == []
 
 
 def test_heading_only_markdown_still_produces_a_chunk(tmp_path):

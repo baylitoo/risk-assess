@@ -139,12 +139,25 @@ class IngestionIssue(BaseModel):
     message: str
 
 
+class ImageChunk(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chunk_id: str
+    document_id: str
+    page_num: int = Field(ge=1)
+    media_type: str
+    data_b64: str
+    sha256: str
+    size_bytes: int = Field(ge=0)
+
+
 class DocumentCorpus(Artifact):
     """Normalized document manifest and chunks for downstream extraction."""
 
     artifact_type: str = "document_corpus"
     documents: list[DocumentRecord] = Field(default_factory=list)
     chunks: list[DocumentChunk] = Field(default_factory=list)
+    image_chunks: list[ImageChunk] = Field(default_factory=list)
     issues: list[IngestionIssue] = Field(default_factory=list)
 
 

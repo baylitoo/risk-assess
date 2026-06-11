@@ -7,20 +7,27 @@ import re
 from pathlib import Path
 
 from riskos.ids import stable_id
+from riskos.parsers import ParseConfig, parse_document
 from riskos.schemas.artifacts import (
     DocumentChunk,
     DocumentCorpus,
     DocumentRecord,
     DocumentType,
+    ImageChunk,
     IngestionIssue,
     Producer,
 )
 
-_SUPPORTED_MEDIA_TYPES = {
+_TEXT_MEDIA_TYPES = {
     ".md": "text/markdown",
     ".markdown": "text/markdown",
     ".txt": "text/plain",
 }
+_PARSER_MEDIA_TYPES = {
+    ".pdf": "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
+_SUPPORTED_MEDIA_TYPES = {**_TEXT_MEDIA_TYPES, **_PARSER_MEDIA_TYPES}
 _HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 _BLANK_LINES = re.compile(r"\n\s*\n+")
 _CLASSIFIERS: tuple[tuple[DocumentType, tuple[str, ...]], ...] = (
@@ -43,8 +50,13 @@ def ingest_directory(
     producer: Producer | None = None,
     max_chunk_chars: int = 2_000,
     version: int = 1,
+    parse_config: ParseConfig | None = None,
 ) -> DocumentCorpus:
-    """Normalize all supported documents below a directory into one corpus."""
+    """Normalize all supported documents below a directory into one corpus.
+
+    Supports plain text (.md, .txt), PDF, and DOCX. PDF/DOCX are routed
+    through the parser service which selects a text or vision path per file.
+    """
     root = Path(directory)
     if not root.is_dir():
         raise IngestionError(f"document directory not found: {root}")
@@ -55,7 +67,9 @@ def ingest_directory(
 
     documents: list[DocumentRecord] = []
     chunks: list[DocumentChunk] = []
+    image_chunks: list[ImageChunk] = []
     issues: list[IngestionIssue] = []
+
     for path in sorted(root.rglob("*")):
         relative = path.relative_to(root).as_posix()
         if path.is_symlink():
@@ -69,6 +83,7 @@ def ingest_directory(
             continue
         if not path.is_file():
             continue
+
         suffix = path.suffix.casefold()
         media_type = _SUPPORTED_MEDIA_TYPES.get(suffix)
         if media_type is None:
@@ -80,10 +95,11 @@ def ingest_directory(
                 )
             )
             continue
+
+        raw = None
         try:
             raw = path.read_bytes()
-            text = _normalize_text(raw.decode("utf-8"))
-        except (OSError, UnicodeDecodeError) as exc:
+        except OSError as exc:
             issues.append(
                 IngestionIssue(
                     source_path=relative,
@@ -92,6 +108,68 @@ def ingest_directory(
                 )
             )
             continue
+
+        document_id = stable_id("document", assessment_id, relative)
+
+        # --- Parser path (PDF / DOCX) ---
+        if suffix in _PARSER_MEDIA_TYPES:
+            try:
+                doc_chunks, doc_img_chunks = parse_document(
+                    path, document_id, parse_config, max_chunk_chars
+                )
+            except Exception as exc:  # noqa: BLE001
+                issues.append(
+                    IngestionIssue(
+                        source_path=relative,
+                        code="parse_error",
+                        message=str(exc),
+                    )
+                )
+                continue
+
+            if not doc_chunks and not doc_img_chunks:
+                issues.append(
+                    IngestionIssue(
+                        source_path=relative,
+                        code="empty_document",
+                        message="Parser produced no chunks.",
+                    )
+                )
+                continue
+
+            all_chunk_ids = [c.chunk_id for c in doc_chunks] + [
+                c.chunk_id for c in doc_img_chunks
+            ]
+            sample_text = " ".join(c.text for c in doc_chunks[:3])
+            documents.append(
+                DocumentRecord(
+                    document_id=document_id,
+                    source_path=relative,
+                    filename=path.name,
+                    media_type=media_type,
+                    document_type=classify_document(relative, sample_text),
+                    sha256=_sha256(raw),
+                    size_bytes=len(raw),
+                    chunk_ids=all_chunk_ids,
+                )
+            )
+            chunks.extend(doc_chunks)
+            image_chunks.extend(doc_img_chunks)
+            continue
+
+        # --- Plain text path (.md, .txt) ---
+        try:
+            text = _normalize_text(raw.decode("utf-8"))
+        except UnicodeDecodeError as exc:
+            issues.append(
+                IngestionIssue(
+                    source_path=relative,
+                    code="unreadable_document",
+                    message=str(exc),
+                )
+            )
+            continue
+
         if not text:
             issues.append(
                 IngestionIssue(
@@ -102,7 +180,6 @@ def ingest_directory(
             )
             continue
 
-        document_id = stable_id("document", assessment_id, relative)
         document_chunks = _chunk_document(
             document_id, text, media_type == "text/markdown", max_chunk_chars
         )
@@ -128,6 +205,7 @@ def ingest_directory(
         version=version,
         documents=documents,
         chunks=chunks,
+        image_chunks=image_chunks,
         issues=issues,
     )
 

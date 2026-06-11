@@ -87,3 +87,22 @@ class InventoryGeneration(GenerationModel):
     third_parties: list[ProposedThirdParty] = Field(default_factory=list)
     controls: list[ProposedControl] = Field(default_factory=list)
     unresolved_mentions: list[UnresolvedMention] = Field(default_factory=list)
+
+
+class ProposedCritiqueItem(GenerationModel):
+    """LLM-proposed critique of a single finding."""
+
+    target_finding_id: NonEmptyStr
+    issue_type: str  # CritiqueIssueType value — validated at materialization
+    description: NonEmptyStr
+    suggested_action: str = ""
+    confidence: float = Field(default=0.8, ge=0.0, le=1.0)
+    source_chunk_ids: list[NonEmptyStr] = Field(default_factory=list)
+
+
+class CritiqueGeneration(GenerationModel):
+    """Structured output from the critic agent."""
+
+    schema_version: Literal["1"] = "1"
+    items: list[ProposedCritiqueItem] = Field(default_factory=list)
+    verdict: str  # CritiqueVerdict value

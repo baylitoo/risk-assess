@@ -39,8 +39,10 @@ from riskos.schemas.generation import (
     ProposedDataAsset,
     ProposedDataFlow,
     ProposedEntity,
+    ProposedFinding,
     ProposedSystem,
     ProposedThirdParty,
+    ThreatGeneration,
     UnresolvedMention,
 )
 
@@ -81,7 +83,9 @@ __all__ = [
     "ProposedDataAsset",
     "ProposedDataFlow",
     "ProposedEntity",
+    "ProposedFinding",
     "ProposedSystem",
     "ProposedThirdParty",
+    "ThreatGeneration",
     "UnresolvedMention",
 ]

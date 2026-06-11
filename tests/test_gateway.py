@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from riskos.gateway import (
     FakeStructuredGenerationGateway,
     GenerationGatewayError,
+    ImageContent,
     StructuredGenerationRequest,
 )
 from riskos.schemas.generation import InventoryGeneration
@@ -75,3 +76,46 @@ def test_request_rejects_model_or_provider_fields():
                 "model_id": "forbidden",
             }
         )
+
+
+def test_request_with_images_serializes_and_round_trips():
+    img = ImageContent(media_type="image/png", data_b64="aGVsbG8=")
+    req = StructuredGenerationRequest(
+        route="inventory-extraction",
+        system_prompt="system",
+        user_message="user",
+        prompt_version="1",
+        images=[img],
+    )
+
+    assert req.images[0].media_type == "image/png"
+    assert req.images[0].data_b64 == "aGVsbG8="
+    assert StructuredGenerationRequest.model_validate_json(req.model_dump_json()) == req
+
+
+def test_request_images_defaults_to_empty():
+    req = _request()
+    assert req.images == []
+
+
+def test_fake_gateway_records_images_per_call():
+    gateway = FakeStructuredGenerationGateway()
+    gateway.set_response(InventoryGeneration, InventoryGeneration())
+
+    img = ImageContent(media_type="image/png", data_b64="aGVsbG8=")
+    req = StructuredGenerationRequest(
+        route="inventory-extraction",
+        system_prompt="system",
+        user_message="user",
+        prompt_version="1",
+        images=[img],
+    )
+    gateway.generate_structured(req, InventoryGeneration)
+
+    assert len(gateway.calls[0].images) == 1
+    assert gateway.calls[0].images[0].media_type == "image/png"
+
+
+def test_image_content_rejects_empty_fields():
+    with pytest.raises(ValidationError):
+        ImageContent(media_type="", data_b64="aGVsbG8=")

@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from riskos.adapters.gateway import LiteLLMProxyConfig, LiteLLMProxyGateway
-from riskos.gateway import GenerationGatewayError, StructuredGenerationRequest
+from riskos.gateway import GenerationGatewayError, ImageContent, StructuredGenerationRequest
 from riskos.schemas.generation import InventoryGeneration
 
 _API_KEY = "sentinel-key-xyz"
@@ -63,6 +63,20 @@ def test_success_returns_validated_instance():
 
     assert isinstance(result, InventoryGeneration)
     mock_open.assert_called_once()
+
+
+def test_images_included_in_proxy_body():
+    gateway = LiteLLMProxyGateway(_config())
+    resp_mock = _make_response(_valid_payload())
+    img = ImageContent(media_type="image/png", data_b64="aGVsbG8=")
+    req = _request(images=[img])
+
+    with patch("urllib.request.urlopen", return_value=resp_mock) as mock_open:
+        gateway.generate_structured(req, InventoryGeneration)
+
+    call_args = mock_open.call_args[0][0]
+    body = json.loads(call_args.data)
+    assert body["request"]["images"] == [{"media_type": "image/png", "data_b64": "aGVsbG8="}]
 
 
 # ---------------------------------------------------------------------------

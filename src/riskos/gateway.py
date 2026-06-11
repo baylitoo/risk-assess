@@ -14,6 +14,15 @@ from pydantic import BaseModel, ConfigDict, Field
 T = TypeVar("T", bound=BaseModel)
 
 
+class ImageContent(BaseModel):
+    """Base64-encoded image attached to a generation request."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    media_type: str
+    data_b64: str
+
+
 class StructuredGenerationRequest(BaseModel):
     """Serializable request sent through the managed generation proxy."""
 
@@ -25,6 +34,7 @@ class StructuredGenerationRequest(BaseModel):
     prompt_version: str = Field(min_length=1)
     max_output_tokens: int = Field(default=8192, ge=1)
     timeout_seconds: float = Field(default=120.0, gt=0)
+    images: list[ImageContent] = Field(default_factory=list)
 
 
 class StructuredGenerationGateway(Protocol):

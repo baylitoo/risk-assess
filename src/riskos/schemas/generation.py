@@ -89,20 +89,30 @@ class InventoryGeneration(GenerationModel):
     unresolved_mentions: list[UnresolvedMention] = Field(default_factory=list)
 
 
-class ProposedCritiqueItem(GenerationModel):
-    """LLM-proposed critique of a single finding."""
+class ProposedFinding(ProposedEntity):
+    """A threat scenario proposed by the threat_modeler or risk_synthesizer."""
 
-    target_finding_id: NonEmptyStr
-    issue_type: str  # CritiqueIssueType value — validated at materialization
-    description: NonEmptyStr
-    suggested_action: str = ""
     confidence: float = Field(default=0.8, ge=0.0, le=1.0)
-    source_chunk_ids: list[NonEmptyStr] = Field(default_factory=list)
+    category: str  # validated against FindingCategory at runtime (avoids circular import)
+    scenario: NonEmptyStr
+    affected_asset_keys: list[str] = Field(default_factory=list)
+    threat_refs: list[str] = Field(default_factory=list)
+    factors: dict[str, str] = Field(default_factory=dict)
+    remediation: str = ""
+
+    def model_post_init(self, __context) -> None:  # noqa: ANN001
+        from riskos.schemas.artifacts import FindingCategory  # noqa: PLC0415
+        allowed = {m.value for m in FindingCategory}
+        if self.category not in allowed:
+            raise ValueError(
+                f"category {self.category!r} is not a valid FindingCategory; "
+                f"allowed: {sorted(allowed)}"
+            )
 
 
-class CritiqueGeneration(GenerationModel):
-    """Structured output from the critic agent."""
+class ThreatGeneration(GenerationModel):
+    """Structured output from the threat modeler or synthesizer gap-filler."""
 
     schema_version: Literal["1"] = "1"
-    items: list[ProposedCritiqueItem] = Field(default_factory=list)
-    verdict: str  # CritiqueVerdict value
+    findings: list[ProposedFinding] = Field(default_factory=list)
+    unresolved_gaps: list[UnresolvedMention] = Field(default_factory=list)

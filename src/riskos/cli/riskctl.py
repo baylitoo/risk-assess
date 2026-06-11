@@ -163,7 +163,48 @@ def build_parser() -> argparse.ArgumentParser:
     tri = sub.add_parser("triage", help="combined kev+epss+cvss priority, many CVEs")
     tri.add_argument("cve_ids", nargs="+", metavar="CVE-ID")
 
+    cpe = sub.add_parser("cpe", help="CPE canonicalization operations")
+    cpe_sub = cpe.add_subparsers(dest="subcommand", required=True)
+    cpe_match_p = cpe_sub.add_parser("match", help="match CPEs for all components in an inventory")
+    cpe_match_p.add_argument("inventory_json", help="path to AssetInventory JSON file")
+
     return parser
+
+
+def cpe_match(inventory_json_path: str) -> tuple[list[dict], int]:
+    """Match CPEs for all components. Returns (results, exit_code)."""
+    from riskos.cpe.matcher import CpeMatchResult, match_technology
+    from riskos.schemas.artifacts import AssetInventory
+
+    inventory = AssetInventory.model_validate_json(
+        Path(inventory_json_path).read_text(encoding="utf-8")
+    )
+    results = []
+    all_matched = True
+    for comp in inventory.components:
+        if not comp.technology and not comp.cpe_candidates:
+            continue
+        cpes = match_technology(comp.technology or "", comp.cpe_candidates)
+        r = CpeMatchResult(
+            component_id=comp.id,
+            component_name=comp.name,
+            technology=comp.technology or "",
+            cpes=cpes,
+        )
+        results.append(r)
+        if not r.matched:
+            all_matched = False
+
+    return [
+        {
+            "component_id": r.component_id,
+            "component_name": r.component_name,
+            "technology": r.technology,
+            "matched_cpes": r.cpes if r.cpes else ["NONE"],
+            "matched": r.matched,
+        }
+        for r in results
+    ], (0 if all_matched else 1)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -179,9 +220,14 @@ def main(argv: list[str] | None = None) -> int:
             if len(args.cve_ids) > 50:
                 return _fail("max 50 CVE ids per triage call — split the batch")
             return _emit(triage(args.cve_ids))
+        if args.command == "cpe":
+            if args.subcommand == "match":
+                results, exit_code = cpe_match(args.inventory_json)
+                _emit({"count": len(results), "results": results})
+                return exit_code
         return _fail(f"unknown command {args.command!r}")
-    except json.JSONDecodeError as exc:
-        return _fail(f"corrupt mirror file: {exc}")
+    except (json.JSONDecodeError, OSError) as exc:
+        return _fail(str(exc))
 
 
 if __name__ == "__main__":

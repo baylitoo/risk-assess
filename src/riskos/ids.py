@@ -34,6 +34,7 @@ KIND_PREFIX: dict[str, str] = {
     "evidence": "evd",
     "document": "doc",
     "chunk": "chk",
+    "image_chunk": "img",
     "assumption": "asn",
     "artifact": "art",
     "span": "spn",

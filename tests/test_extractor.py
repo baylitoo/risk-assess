@@ -5,7 +5,7 @@ import pytest
 from riskos.gateway import FakeStructuredGenerationGateway
 from riskos.ids import stable_id
 from riskos.intake import extract_inventory, ingest_directory, InventoryGenerationError
-from riskos.schemas.artifacts import Producer
+from riskos.schemas.artifacts import ImageChunk, Producer
 from riskos.schemas.generation import (
     InventoryGeneration,
     ProposedComponent,
@@ -119,3 +119,36 @@ def test_extractor_heading_in_chunk_tag(corpus, producer):
     user_message = gateway.calls[0].user_message
     # The corpus has a markdown heading — it should appear in the formatted chunk tag.
     assert 'heading=' in user_message
+
+
+def test_extractor_text_only_corpus_has_no_images(corpus, producer):
+    gateway = FakeStructuredGenerationGateway()
+    gateway.set_response(InventoryGeneration, _simple_generation(corpus.chunks[0].chunk_id))
+
+    extract_inventory(corpus, gateway, producer)
+
+    assert gateway.calls[0].images == []
+    assert "Image count: 0" in gateway.calls[0].user_message
+
+
+def test_extractor_attaches_image_chunks_to_request(corpus, producer):
+    image_chunk = ImageChunk(
+        chunk_id=stable_id("image_chunk", "doc-1", "1"),
+        document_id="doc-1",
+        page_num=1,
+        media_type="image/jpeg",
+        data_b64="ZmFrZS1qcGVn",
+        sha256="0" * 64,
+        size_bytes=8,
+    )
+    corpus_with_image = corpus.model_copy(update={"image_chunks": [image_chunk]})
+    gateway = FakeStructuredGenerationGateway()
+    gateway.set_response(InventoryGeneration, _simple_generation(corpus.chunks[0].chunk_id))
+
+    extract_inventory(corpus_with_image, gateway, producer)
+
+    request = gateway.calls[0]
+    assert len(request.images) == 1
+    assert request.images[0].media_type == "image/jpeg"
+    assert request.images[0].data_b64 == "ZmFrZS1qcGVn"
+    assert "Image count: 1" in request.user_message

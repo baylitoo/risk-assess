@@ -16,7 +16,7 @@ Prompt design notes (ROADMAP §3 rule 2 — "help text is the contract"):
 
 from __future__ import annotations
 
-from riskos.gateway import StructuredGenerationGateway, StructuredGenerationRequest
+from riskos.gateway import ImageContent, StructuredGenerationGateway, StructuredGenerationRequest
 from riskos.intake.inventory import InventoryGenerationError, create_inventory_extraction
 from riskos.schemas.artifacts import DocumentCorpus, InventoryExtraction, Producer
 from riskos.schemas.generation import InventoryGeneration
@@ -79,6 +79,10 @@ def extract_inventory(
     if version < 1:
         raise InventoryGenerationError("version must be positive")
     user_message = _format_corpus(corpus)
+    images = [
+        ImageContent(media_type=ic.media_type, data_b64=ic.data_b64)
+        for ic in corpus.image_chunks
+    ]
     request = StructuredGenerationRequest(
         route=route,
         system_prompt=_SYSTEM_PROMPT,
@@ -86,6 +90,7 @@ def extract_inventory(
         prompt_version=prompt_version,
         max_output_tokens=max_output_tokens,
         timeout_seconds=timeout_seconds,
+        images=images,
     )
     generation = gateway.generate_structured(
         request=request,
@@ -100,6 +105,7 @@ def _format_corpus(corpus: DocumentCorpus) -> str:
         f"Assessment ID: {corpus.assessment_id}",
         f"Document count: {len(corpus.documents)}",
         f"Chunk count: {len(corpus.chunks)}",
+        f"Image count: {len(corpus.image_chunks)}",
         "",
     ]
     for chunk in corpus.chunks:

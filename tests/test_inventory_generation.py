@@ -10,7 +10,7 @@ from riskos.intake import (
     ingest_directory,
     materialize_inventory,
 )
-from riskos.schemas.artifacts import Producer
+from riskos.schemas.artifacts import ImageChunk, Producer
 from riskos.schemas.artifacts import AssetInventory, InventoryExtraction
 from riskos.schemas.generation import (
     InventoryGeneration,
@@ -155,6 +155,65 @@ def test_generation_rejects_empty_reference_strings(corpus):
 
     with pytest.raises(ValidationError, match="string_too_short"):
         InventoryGeneration.model_validate(payload)
+
+
+def _corpus_with_image(corpus) -> tuple[object, ImageChunk]:
+    image = ImageChunk(
+        chunk_id=stable_id("image_chunk", "doc-diagram", "1"),
+        document_id=corpus.documents[0].document_id,
+        page_num=2,
+        media_type="image/jpeg",
+        data_b64="ZmFrZQ==",
+        sha256="0" * 64,
+        size_bytes=5,
+    )
+    return corpus.model_copy(update={"image_chunks": [image]}), image
+
+
+def test_entity_may_cite_image_chunk(corpus):
+    corpus_with_image, image = _corpus_with_image(corpus)
+    generation = InventoryGeneration(
+        systems=[
+            ProposedSystem(
+                key="diagram-system",
+                name="Diagram System",
+                source_chunk_ids=[image.chunk_id],
+                confidence=0.9,
+            )
+        ]
+    )
+
+    # An image chunk id is a valid citation target — this must not raise.
+    extraction = create_inventory_extraction(
+        corpus_with_image, generation, Producer(agent="inventory_extractor")
+    )
+    inventory = materialize_inventory(corpus_with_image, extraction)
+
+    assert inventory.systems[0].name == "Diagram System"
+    evidence = inventory.evidence[0]
+    assert inventory.systems[0].evidence_ids == [evidence.evidence_id]
+    # Image evidence is page-located and carries no text excerpt.
+    assert evidence.source_ref == "architecture.md#page 2"
+    assert evidence.excerpt == ""
+
+
+def test_unknown_image_chunk_still_rejected(corpus):
+    corpus_with_image, _ = _corpus_with_image(corpus)
+    generation = InventoryGeneration(
+        systems=[
+            ProposedSystem(
+                key="diagram-system",
+                name="Diagram System",
+                source_chunk_ids=["image-does-not-exist"],
+                confidence=0.9,
+            )
+        ]
+    )
+
+    with pytest.raises(InventoryGenerationError, match="unknown chunks"):
+        create_inventory_extraction(
+            corpus_with_image, generation, Producer(agent="inventory_extractor")
+        )
 
 
 def test_low_confidence_and_unresolved_mentions_become_missing_evidence(corpus):

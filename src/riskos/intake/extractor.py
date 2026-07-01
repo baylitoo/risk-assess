@@ -37,7 +37,10 @@ WHAT TO EXTRACT
 
 KEY RULES
   source_chunk_ids  Every entity MUST reference at least one chunk using the exact
-                    chunk id from the <chunk id="..."> tag. Do not invent chunk IDs.
+                    chunk id from a <chunk id="..."> or <image id="..."> tag. Do not
+                    invent chunk IDs. Attached images are listed as <image> tags in the
+                    same order they are attached to the request; cite a diagram by its
+                    image id when an entity is grounded in that diagram.
   confidence        0.0–1.0. Use ≥0.9 only when the evidence is unambiguous and
                     explicit. Use 0.5–0.7 for reasonable inference. Use <0.5 for
                     weak signals. Never round-up to 1.0 on self-generated inference.
@@ -115,5 +118,14 @@ def _format_corpus(corpus: DocumentCorpus) -> str:
         parts.append(f"<chunk {attrs}>")
         parts.append(chunk.text)
         parts.append("</chunk>")
+        parts.append("")
+    # Image chunks carry no text; list them in the order they are attached to
+    # request.images so the model can map an attached image to a citeable id.
+    for order, image in enumerate(corpus.image_chunks):
+        parts.append(
+            f'<image id="{image.chunk_id}" order="{order}" '
+            f'page="{image.page_num}" media_type="{image.media_type}"/>'
+        )
+    if corpus.image_chunks:
         parts.append("")
     return "\n".join(parts)

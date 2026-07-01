@@ -152,3 +152,27 @@ def test_extractor_attaches_image_chunks_to_request(corpus, producer):
     assert request.images[0].media_type == "image/jpeg"
     assert request.images[0].data_b64 == "ZmFrZS1qcGVn"
     assert "Image count: 1" in request.user_message
+
+
+def test_extractor_lists_image_chunk_ids_for_citation(corpus, producer):
+    image_chunk = ImageChunk(
+        chunk_id=stable_id("image_chunk", "doc-1", "1"),
+        document_id="doc-1",
+        page_num=1,
+        media_type="image/jpeg",
+        data_b64="ZmFrZS1qcGVn",
+        sha256="0" * 64,
+        size_bytes=8,
+    )
+    corpus_with_image = corpus.model_copy(update={"image_chunks": [image_chunk]})
+    gateway = FakeStructuredGenerationGateway()
+    gateway.set_response(InventoryGeneration, _simple_generation(corpus.chunks[0].chunk_id))
+
+    extract_inventory(corpus_with_image, gateway, producer)
+
+    msg = gateway.calls[0].user_message
+    # The image id must appear as a citeable <image> tag, ordered to match the
+    # attached request.images list, so the model can cite a diagram.
+    assert "<image " in msg
+    assert image_chunk.chunk_id in msg
+    assert 'order="0"' in msg

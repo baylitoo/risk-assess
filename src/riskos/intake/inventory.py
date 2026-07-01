@@ -122,6 +122,7 @@ def materialize_inventory(
         chunk_id: stable_id("evidence", chunk_id) for chunk_id in used_chunk_ids
     }
     chunks = {chunk.chunk_id: chunk for chunk in corpus.chunks}
+    image_chunks = {image.chunk_id: image for image in corpus.image_chunks}
     documents = {document.document_id: document for document in corpus.documents}
 
     def provenance(chunk_ids: list[str]) -> list[str]:
@@ -230,8 +231,8 @@ def materialize_inventory(
             Evidence(
                 evidence_id=evidence_ids[chunk_id],
                 source_type=EvidenceSource.DOCUMENT,
-                source_ref=_source_ref(chunks[chunk_id], documents),
-                excerpt=chunks[chunk_id].text,
+                source_ref=_source_ref(chunk_id, chunks, image_chunks, documents),
+                excerpt=chunks[chunk_id].text if chunk_id in chunks else "",
             )
             for chunk_id in used_chunk_ids
         ],
@@ -240,7 +241,9 @@ def materialize_inventory(
 
 
 def _validate_generation(corpus: DocumentCorpus, generation: InventoryGeneration) -> None:
-    chunk_ids = {chunk.chunk_id for chunk in corpus.chunks}
+    chunk_ids = {chunk.chunk_id for chunk in corpus.chunks} | {
+        image.chunk_id for image in corpus.image_chunks
+    }
     groups = (
         ("system", generation.systems),
         ("component", generation.components),
@@ -358,7 +361,12 @@ def _dependency_filtered(
     return filtered
 
 
-def _source_ref(chunk, documents) -> str:
-    document = documents[chunk.document_id]
-    locator = chunk.heading or f"chunk {chunk.ordinal}"
-    return f"{document.source_path}#{locator}"
+def _source_ref(chunk_id, text_chunks, image_chunks, documents) -> str:
+    if chunk_id in text_chunks:
+        chunk = text_chunks[chunk_id]
+        document = documents[chunk.document_id]
+        locator = chunk.heading or f"chunk {chunk.ordinal}"
+        return f"{document.source_path}#{locator}"
+    image = image_chunks[chunk_id]
+    document = documents[image.document_id]
+    return f"{document.source_path}#page {image.page_num}"

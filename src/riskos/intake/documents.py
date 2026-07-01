@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import re
 from pathlib import Path
@@ -27,7 +28,19 @@ _PARSER_MEDIA_TYPES = {
     ".pdf": "application/pdf",
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 }
-_SUPPORTED_MEDIA_TYPES = {**_TEXT_MEDIA_TYPES, **_PARSER_MEDIA_TYPES}
+# Standalone image files (diagrams exported from Visio/draw.io etc.) enter the
+# corpus directly as a single-page ImageChunk for the vision extraction pass.
+_IMAGE_MEDIA_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+}
+_SUPPORTED_MEDIA_TYPES = {
+    **_TEXT_MEDIA_TYPES,
+    **_PARSER_MEDIA_TYPES,
+    **_IMAGE_MEDIA_TYPES,
+}
 _HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 _BLANK_LINES = re.compile(r"\n\s*\n+")
 _CLASSIFIERS: tuple[tuple[DocumentType, tuple[str, ...]], ...] = (
@@ -54,8 +67,10 @@ def ingest_directory(
 ) -> DocumentCorpus:
     """Normalize all supported documents below a directory into one corpus.
 
-    Supports plain text (.md, .txt), PDF, and DOCX. PDF/DOCX are routed
-    through the parser service which selects a text or vision path per file.
+    Supports plain text (.md, .txt), PDF, DOCX, and standalone images
+    (.png, .jpg/.jpeg, .webp). PDF/DOCX are routed through the parser service
+    which selects a text or vision path per file; standalone images become a
+    single-page ImageChunk fed to the vision extraction pass.
     """
     root = Path(directory)
     if not root.is_dir():
@@ -110,6 +125,35 @@ def ingest_directory(
             continue
 
         document_id = stable_id("document", assessment_id, relative)
+
+        # --- Standalone image path (.png / .jpg / .jpeg / .webp) ---
+        if suffix in _IMAGE_MEDIA_TYPES:
+            sha256 = _sha256(raw)
+            chunk_id = stable_id("image_chunk", document_id, "1")
+            image_chunks.append(
+                ImageChunk(
+                    chunk_id=chunk_id,
+                    document_id=document_id,
+                    page_num=1,
+                    media_type=media_type,
+                    data_b64=base64.b64encode(raw).decode("ascii"),
+                    sha256=sha256,
+                    size_bytes=len(raw),
+                )
+            )
+            documents.append(
+                DocumentRecord(
+                    document_id=document_id,
+                    source_path=relative,
+                    filename=path.name,
+                    media_type=media_type,
+                    document_type=classify_document(relative, ""),
+                    sha256=sha256,
+                    size_bytes=len(raw),
+                    chunk_ids=[chunk_id],
+                )
+            )
+            continue
 
         # --- Parser path (PDF / DOCX) ---
         if suffix in _PARSER_MEDIA_TYPES:

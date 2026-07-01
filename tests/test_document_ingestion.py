@@ -43,7 +43,7 @@ def test_normalized_chunks_have_stable_ids_across_line_endings(tmp_path):
 
 
 def test_unsupported_and_empty_documents_become_issues(tmp_path):
-    (tmp_path / "diagram.png").write_bytes(b"not-an-image")
+    (tmp_path / "notes.rtf").write_bytes(b"not-supported")
     (tmp_path / "empty.txt").write_text(" \n", encoding="utf-8")
 
     corpus = ingest_directory(tmp_path, stable_id("assessment", "issues"))
@@ -51,9 +51,26 @@ def test_unsupported_and_empty_documents_become_issues(tmp_path):
 
     assert corpus.documents == []
     assert by_path == {
-        "diagram.png": "unsupported_media_type",
+        "notes.rtf": "unsupported_media_type",
         "empty.txt": "empty_document",
     }
+
+
+def test_standalone_image_becomes_image_chunk(tmp_path):
+    (tmp_path / "network_diagram.png").write_bytes(b"\x89PNG\r\n\x1a\nfake-png")
+
+    corpus = ingest_directory(tmp_path, stable_id("assessment", "img"))
+
+    assert corpus.issues == []
+    assert corpus.chunks == []
+    assert len(corpus.image_chunks) == 1
+    image = corpus.image_chunks[0]
+    assert image.media_type == "image/png"
+    assert image.page_num == 1
+    assert len(corpus.documents) == 1
+    document = corpus.documents[0]
+    assert document.media_type == "image/png"
+    assert document.chunk_ids == [image.chunk_id]
 
 
 def test_heading_only_markdown_still_produces_a_chunk(tmp_path):
